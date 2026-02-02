@@ -4,6 +4,8 @@ from model_constants import *
 
 r_0 = np.zeros(3)
 
+Cpb = np.identity(3)
+Cbp = np.identity(3)
 C0b = np.identity(3)
 phi = 0
 theta = 0
@@ -16,6 +18,9 @@ r = 0
 u = 0
 v = 0
 w = 0
+
+theta_prop = 0
+psi_prop = 0
 
 def update_C0b(phi_i, theta_i, psi_i):
 	global C0b

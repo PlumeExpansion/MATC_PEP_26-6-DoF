@@ -85,23 +85,51 @@ def update_panel_frames(C0b, vel=None, omega=None):
 	for panel in panels:
 		panel.update_frames(C0b, vel, omega)
 
-bodyFrame = [arrow(axis=vec(*xHat),color=color.red,round=True),
+body_frame = [arrow(axis=vec(*xHat),color=color.red,round=True),
 			  arrow(axis=vec(*yHat),color=color.green,round=True),
 			  arrow(axis=vec(*zHat),color=color.blue,round=True)]
 def body_frame_toggle():
-	for arr in bodyFrame:
+	for arr in body_frame:
 		arr.visible = not arr.visible
 body_frame_button = button(text='Body Frame', bind=body_frame_toggle)
 
-fixedFrame = [arrow(axis=vec(*xHat),color=color.red,round=True),
+fixed_frame = [arrow(axis=vec(*xHat),color=color.red,round=True),
 			  arrow(axis=vec(*yHat),color=color.green,round=True),
 			  arrow(axis=vec(*zHat),color=color.blue,round=True)]
 def fixed_frame_toggle():
-	for arr in fixedFrame:
+	for arr in fixed_frame:
 		arr.visible = not arr.visible
 fixed_frame_button = button(text='Fixed Frame', bind=fixed_frame_toggle)
 
+prop_frame = [arrow(axis=vec(*xHat)*0.1,color=color.red,round=True),
+			  arrow(axis=vec(*yHat)*0.1,color=color.green,round=True),
+			  arrow(axis=vec(*zHat)*0.1,color=color.blue,round=True)]
+def prop_frame_toggle():
+	for arr in prop_frame:
+		arr.visible = not arr.visible
+prop_frame_button = button(text='Prop Frame', bind=prop_frame_toggle)
 
+def update_prop_frame(C0b, r0=None, theta_p=None, psi_p=None):
+	if theta_p is None or psi_p is None:
+		theta_p = theta_prop
+		psi_p = psi_prop
+	else:
+		global Cpb, Cbp
+		Cpb = np.array([
+			[cos(theta_p)*cos(psi_p), sin(psi_p), -sin(theta_p)*cos(psi_p)],
+			[-cos(theta_p)*sin(psi_p), cos(psi_p), sin(theta_p)*sin(psi_p)],
+			[sin(theta_p), 0, cos(theta_p)]
+		])
+		Cbp = np.transpose(Cpb)
+	if r0 is None:
+		r0 = r_0
+	C0p = C0b @ Cbp
+	prop_frame[0].axis = arr2vec(C0p @ xHat) * 0.1
+	prop_frame[1].axis = arr2vec(C0p @ yHat) * 0.1
+	prop_frame[2].axis = arr2vec(C0p @ zHat) * 0.1
+
+	for arr in prop_frame:
+		arr.pos = arr2vec(C0b @ (r_prop - r_CM) + r0)
 
 locations = []
 for name, value in locals().copy().items():
@@ -127,9 +155,9 @@ def model_rotation():
 	model.axis = arr2vec(C0b @ xHat)
 	model.up = arr2vec(C0b @ yHat)
 
-	bodyFrame[0].axis = arr2vec(C0b @ xHat)
-	bodyFrame[1].axis = arr2vec(C0b @ yHat)
-	bodyFrame[2].axis = arr2vec(C0b @ zHat)
+	body_frame[0].axis = arr2vec(C0b @ xHat)
+	body_frame[1].axis = arr2vec(C0b @ yHat)
+	body_frame[2].axis = arr2vec(C0b @ zHat)
 
 	phi_text.text = f'ϕ: {phi_slider.value:.1f}°'
 	theta_text.text = f'θ: {theta_slider.value:.1f}°'
@@ -138,6 +166,7 @@ def model_rotation():
 	update_panels(C0b)
 	update_panel_frames(C0b)
 	update_locations(C0b)
+	update_prop_frame(C0b)
 
 scene.append_to_caption('\n')
 phi_slider = slider(bind=model_rotation, min=-24, max=24, value=np.rad2deg(phi))
@@ -153,7 +182,7 @@ def model_position():
 	r_0[1] = y0_slider.value
 	r_0[2] = z0_slider.value
 	model.pos = arr2vec(r_0)
-	for arr in bodyFrame:
+	for arr in body_frame:
 		arr.pos = model.pos
 
 	x0_text.text = f'x0: {r_0[0]:.2f} m'
@@ -163,6 +192,7 @@ def model_position():
 	update_panels(C0b)
 	update_panel_frames(C0b)
 	update_locations(C0b)
+	update_prop_frame(C0b, r_0)
 
 scene.append_to_caption('\n')
 x0_slider = slider(bind=model_position, min=-1, max=1, value=r_0[0])
@@ -208,8 +238,25 @@ q_text = wtext(text=f'q: {q_slider.value:.1f}°/s')
 r_slider = slider(bind=model_rate, min=-180, max=180, value=np.rad2deg(r))
 r_text = wtext(text=f'r: {r_slider.value:.1f}°/s')
 
+def prop_angle():
+	global theta_prop, psi_prop
+	theta_prop = np.deg2rad(theta_p_slider.value)
+	psi_prop = np.deg2rad(psi_p_slider.value)
+
+	theta_p_text.text = f'θp: {theta_p_slider.value:.1f}°'
+	psi_p_text.text = f'ψp: {psi_p_slider.value:.1f}°'
+
+	update_prop_frame(C0b, r_0, theta_prop, psi_prop)
+
+scene.append_to_caption('\n')
+theta_p_slider = slider(bind=prop_angle, min=-10, max=10, value=np.rad2deg(theta_prop))
+theta_p_text = wtext(text=f'θp: {theta_p_slider.value:.1f}°')
+psi_p_slider = slider(bind=prop_angle, min=-30, max=30, value=np.rad2deg(psi_prop))
+psi_p_text = wtext(text=f'ψp: {psi_p_slider.value:.1f}°')
+
 update_panels(C0b)
 update_panel_frames(C0b)
+update_prop_frame(C0b)
 
 while True:
 	pass

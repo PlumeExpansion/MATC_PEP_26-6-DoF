@@ -7,7 +7,7 @@ from utils import *
 # --- Point Locations (m) ---
 # Format: [X (front), Y (right), Z (down)]
 r_CM = np.array([32, 0, -12]) / 100
-r_prop = np.array([-19, 0, 13.6]) / 100
+r_prop = np.array([-19, 0, 14.5]) / 100
 
 r_LE_vr  = np.array([67.695, -46.642, -16.876]) / 100
 r_TE_vr  = np.array([37.695, -46.642, -16.876]) / 100

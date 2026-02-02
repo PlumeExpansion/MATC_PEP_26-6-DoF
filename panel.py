@@ -1,7 +1,6 @@
 from vpython import *
 import numpy as np
 import numpy.linalg as LA
-import copy
 
 from utils import *
 
