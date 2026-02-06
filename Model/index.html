@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>6 DoF Visualization</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'three';
+
+        // 1. Setup Three.js Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshNormalMaterial();
+        const box = new THREE.Mesh(geometry, material);
+        scene.add(box);
+        camera.position.z = 10;
+
+        // 2. Connect to Python Socket.IO Server
+        const socket = io('http://localhost:5000');
+
+        socket.on('update_state', (data) => {
+            // Apply Position
+            box.position.set(data.pos[0], data.pos[1], data.pos[2]);
+            
+            // Apply Rotation (Euler angles)
+            // Note: Coordinate systems often differ. Python Z is often Three.js Y.
+            box.rotation.set(data.rot[0], data.rot[1], data.rot[2]);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "6-dof_visualization",
+  "version": "1.0.0",
+  "description": "Visualization for 6-DoF Dynamic Simulation of USV",
+  "author": "Yiru Liu",
+  "type": "module",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+	"build": "vite build",
+	"preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "three": "^0.182.0",
+	"tweakpane": "^4.0.5"
+  }
+}
