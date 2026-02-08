@@ -1,28 +1,49 @@
 ##################################################################
-# General Properties
+# General Parameters
 ###################################
 
-m = 65		# (kg)
-g = 9.81	# (m/s^2)
-rho = 1011	# (kg/m^3)
+m = 73			# mass (kg)
+g = 9.81		# gravitational constant (m/s^2)
+rho = 1011		# water density (kg/m^3)
 
-I_xx = 
-I_yy = 
-I_zz = 
+Ixx = 
+Iyy = 
+Izz = 
 
-I_xy =
-I_xz =
-I_yz = 
+Ixy = 
+Ixz = 
+Iyz = 
+
+###################################
+# Propeller Parameters
+
+d = 0.11		# diameter (m)
+Z = 3			# blade count
+AE_AO = 0.6		# blade area ratio
+P_D = 1.4		# pitch diameter ratio
+
+eta_T = 0.95	# thrust deduction factor
+
+w_fs = 0.15		# fully submerged wake factor
+w_f = 0.05 		# foiling wake factor
+
+###################################
+# Motor Parameters
+
+KV = 150		# motor speed constant (RPM/V)
+I0 = 2.7		# no load current (A)
+R0 = 0.054		# motor resistance (Ω)
 
 ##################################################################
 # Point Locations (cm) (fixed axis X front, Y right, Z down)
 ###################################
+# Miscellaneous (body frame)
 
-CM = (32, 0, -12)
-prop = (-19, 0, 13.6pi)
+CM = (32, 0, -12)	# body frame origin
+ra = (-10, 0, 0)	# rear axle frame origin
 
 ###################################
-# Wing
+# Wing (body frame)
 
 LE_vr = (67.695, -46.642, -16.876)
 TE_vr = (37.695, -46.642, -16.876)
@@ -40,25 +61,27 @@ LE_3t = (68.695, -14.042, 18.824)
 TE_3t = (66.695, -14.042, 18.824)
 
 ###################################
-# Rear Wing
+# Rear Wing (rear axle frame)
 
-LE_r1t = (-17.808, -25.642, 22.124)
-TE_r1t = (-21.905, -25.642, 22.124)
+LE_r1t = (-7.808, -25.642, 22.124)
+TE_r1t = (-11.905, -25.642, 22.124)
 
-LE_r12 = (-6.3054, -8.6424, 22.124)
-TE_r12 = (-17.305, -8.6424, 22.124)
+LE_r12 = (3.6946, -8.6424, 22.124)
+TE_r12 = (-7.305, -8.6424, 22.124)
 
-LE_r2m = (-6.3054, 0, 22.124)
-TE_r2m = (-17.305, 0, 22.124)
+LE_r2m = (3.6946, 0, 22.124)
+TE_r2m = (-7.305, 0, 22.124)
 
-LE_r12v = (-11.305, -8.6424, 22.124)
-TE_r12v = (-17.305, -8.6424, 22.124)
+LE_r12v = (-1.305, -8.6424, 22.124)
+TE_r12v = (-7.305, -8.6424, 22.124)
 
-LE_rvs = (-11.305, -8.6424, 7.1239)
-TE_rvs = (-17.305, -8.6424, 7.1239)
+LE_rvs = (-1.305, -8.6424, 7.1239)
+TE_rvs = (-7.305, -8.6424, 7.1239)
 
-LE_rsr = (-11.305, -3.1211, 0)
-TE_rsr = (-17.305, -3.1211, 0)
+LE_rsr = (-1.305, -3.1211, 0)
+TE_rsr = (-7.305, -3.1211, 0)
+
+prop = (-9, 0, 13.6)	# propeller location
 
 ##################################################################
 # Lift & Drag Coefficients
@@ -68,41 +91,55 @@ TE_rsr = (-17.305, -3.1211, 0)
 C_Lh_0 = 0.05
 C_Lh_alpha = 0.01	# (deg^-1)
 C_Dh_0 = 0.1
+e_h = 0.3
 
 ###################################
 # Wing
 
+C_Lwr_0 = 0
+C_Lwr_alpha = 0.05	# (deg^-1)
+C_Dwr_0 = 0.06
+e_wr = 0.5
+
 C_Lv_0 = 0
 C_Lv_alpha = 0.05	# (deg^-1)
 C_Dv_0 = 0.04
+e_v = 0.6
 
 C_L1_0 = 0.35
 C_L1_alpha = 0.1	# (deg^-1)
 C_D1_0 = 0.03
+e_1 = 0.75
 
-C_L20 = 0.35
+C_L2_0 = 0.35
 C_L2_alpha = 0.1	# (deg^-1)
 C_D2_0 = 0.02
+e_2 = 0.75
 
-C_L30 = 0
+C_L3_0 = 0
 C_L3_alpha = 0.1	# (deg^-1)
 C_D3_0 = 0.015
+e_3 = 0.75
 
 ###################################
 # Rear Wing
 
-C_Lr1 = 0.07
+C_Lr1_0 = 0.07
 C_Lr1_alpha = 0.1	# (deg^-1)
 C_Dr1_0 = 0.015
+e_r1 = 0.75
 
-C_Lr2 = 0.07
+C_Lr2_0 = 0.07
 C_Lr2_alpha = 0.1	# (deg^-1)
 C_Dr2_0 = 0.015
+e_r2 = 0.75
 
-C_Lrv = 0
+C_Lrv_0 = 0
 C_Lrv_alpha = 0.05	# (deg^-1)
 C_Drv_0 = 0.015
+e_rv = 0.6
 
-C_Lrs = 0
+C_Lrs_0 = 0
 C_Lrs_alpha = 0.05	# (deg^-1)
 C_Drs_0 = 0.015
+e_rs = 0.6
