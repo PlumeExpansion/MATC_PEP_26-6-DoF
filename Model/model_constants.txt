@@ -2,9 +2,10 @@
 # General Parameters
 ###################################
 
-m = 73			# mass (kg)
-g = 9.81		# gravitational constant (m/s^2)
-rho = 1011		# water density (kg/m^3)
+m = 73				# mass (kg)
+g = 9.81			# gravitational constant (m/s^2)
+rho = 1011			# water density (kg/m^3)
+rho_surf = 1.225	# air density (kg/m^3)
 
 Ixx = 
 Iyy = 
@@ -13,6 +14,11 @@ Izz =
 Ixy = 
 Ixz = 
 Iyz = 
+
+B = 0.613			# beam (m)
+L_PP = 2.13			# length perpendiculars (m)
+
+A_surf = 0.1065 	# surfaced frontal area (m^2)
 
 ###################################
 # Propeller Parameters
@@ -23,6 +29,7 @@ AE_AO = 0.6		# blade area ratio
 P_D = 1.4		# pitch diameter ratio
 
 eta_T = 0.95	# thrust deduction factor
+eta_Tr = 0.65	# reverse thrust deduction factor
 
 w_fs = 0.15		# fully submerged wake factor
 w_f = 0.05 		# foiling wake factor
@@ -35,63 +42,71 @@ I0 = 2.7		# no load current (A)
 R0 = 0.054		# motor resistance (Ω)
 
 ##################################################################
-# Point Locations (cm) (fixed axis X front, Y right, Z down)
+# Point Locations (m) (fixed axis X front, Y right, Z down)
 ###################################
 # Miscellaneous (body frame)
 
-CM = (32, 0, -12)	# body frame origin
-ra = (-10, 0, 0)	# rear axle frame origin
+CM = (0.32, 0, -0.12)		# body frame origin
+ra = (-0.1, 0, 0)			# rear axle frame origin
+r_surf = (0.70, 0, -0.24)	# surfaced forces center
 
 ###################################
-# Wing (body frame)
+# Wing (body frame) (left)
 
-LE_vr = (67.695, -46.642, -16.876)
-TE_vr = (37.695, -46.642, -16.876)
+LE_vr = (0.67695, -0.46642, -0.16876)
+TE_vr = (0.37695, -0.46642, -0.16876)
 
-LE_v1 = (67.695, -47.642, 0)
-TE_v1 = (42.695, -47.642, 0)
+LE_v1 = (0.67695, -0.47642, 0)
+TE_v1 = (0.42695, -0.47642, 0)
 
-LE_12 = (71.395, -25.642, 12.124)
-TE_12 = (61.695, -25.642, 12.124)
+LE_12 = (0.71395, -0.25642, 0.12124)
+TE_12 = (0.61695, -0.25642, 0.12124)
 
-LE_23 = (71.395, -14.042, 14.824)
-TE_23 = (66.695, -14.042, 14.824)
+LE_23 = (0.71395, -0.14042, 0.14824)
+TE_23 = (0.66695, -0.14042, 0.14824)
 
-LE_3t = (68.695, -14.042, 18.824)
-TE_3t = (66.695, -14.042, 18.824)
+LE_3t = (0.68695, -0.14042, 0.18824)
+TE_3t = (0.66695, -0.14042, 0.18824)
 
 ###################################
-# Rear Wing (rear axle frame)
+# Rear Wing (rear axle frame) (left)
 
-LE_r1t = (-7.808, -25.642, 22.124)
-TE_r1t = (-11.905, -25.642, 22.124)
+LE_r1t = (-0.07808, -0.25642, 0.22124)
+TE_r1t = (-0.11905, -0.25642, 0.22124)
 
-LE_r12 = (3.6946, -8.6424, 22.124)
-TE_r12 = (-7.305, -8.6424, 22.124)
+LE_r12 = (0.036946, -0.086424, 0.22124)
+TE_r12 = (-0.07305, -0.086424, 0.22124)
 
-LE_r2m = (3.6946, 0, 22.124)
-TE_r2m = (-7.305, 0, 22.124)
+LE_r2m = (0.036946, 0, 0.22124)
+TE_r2m = (-0.07305, 0, 0.22124)
 
-LE_r12v = (-1.305, -8.6424, 22.124)
-TE_r12v = (-7.305, -8.6424, 22.124)
+LE_r12v = (-0.01305, -0.086424, 0.22124)
+TE_r12v = (-0.07305, -0.086424, 0.22124)
 
-LE_rvs = (-1.305, -8.6424, 7.1239)
-TE_rvs = (-7.305, -8.6424, 7.1239)
+LE_rvs = (-0.01305, -0.086424, 0.071239)
+TE_rvs = (-0.07305, -0.086424, 0.071239)
 
-LE_rsr = (-1.305, -3.1211, 0)
-TE_rsr = (-7.305, -3.1211, 0)
+LE_rsr = (-0.01305, -0.031211, 0)
+TE_rsr = (-0.07305, -0.031211, 0)
 
-prop = (-9, 0, 13.6)	# propeller location
+prop = (-0.09, 0, 0.136)	# propeller location
 
 ##################################################################
 # Lift & Drag Coefficients
 ###################################
-# Hull
+# Hull (submerged, reference area: submerged)
 
 C_Lh_0 = 0.05
 C_Lh_alpha = 0.01	# (deg^-1)
-C_Dh_0 = 0.1
+C_Dh_0 = 0.07
 e_h = 0.3
+
+# Combined Hull & Wing (surfaced, reference area: frontal)
+
+C_Lc_0 = 0
+C_Lc_alpha = 0.01	# (deg^-1)
+C_Dc_0 = 0.1
+C_Dc_alpha2 = 0.01	# (deg^-2)
 
 ###################################
 # Wing
@@ -100,6 +115,7 @@ C_Lwr_0 = 0
 C_Lwr_alpha = 0.05	# (deg^-1)
 C_Dwr_0 = 0.06
 e_wr = 0.5
+AR_wr = 0.3269
 
 C_Lv_0 = 0
 C_Lv_alpha = 0.05	# (deg^-1)
