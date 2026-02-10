@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 from utils import *
 
 class Panel:
-	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, C_L0, C_Lalpha, C_D0, eff, rear):
+	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, coeff_interp_nd, rear):
 		self.model = model
 		self.id = id
 		self.r_LE_1 = r_list[0]

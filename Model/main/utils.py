@@ -36,6 +36,8 @@ def stab_frame(U, omega, X, C_loc_ref):
 	U_local = U + cross(omega, X)
 	U_local_loc_frame = C_loc_ref @ U_local
 	U_mag = mag(U_local)
+	if U_mag < 1e-6:
+		return U_mag, 0, 0, eye3
 	alpha = arctan2(U_local_loc_frame[2], U_local[0])
 	beta = arcsin(U_local_loc_frame[1] / U_mag)
 	C_loc_stab = array([

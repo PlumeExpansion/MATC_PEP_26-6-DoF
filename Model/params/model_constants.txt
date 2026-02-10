@@ -97,9 +97,11 @@ prop = (-0.09, 0, 0.136)	# propeller location
 # Hull (submerged, reference area: submerged)
 
 C_Lh_0 = 0.05
-C_Lh_alpha = 0.01	# (deg^-1)
+C_Lh_alpha = 0.0383		# (deg^-1)
+alpha_h_crit = 5		# (deg)
 C_Dh_0 = 0.07
-e_h = 0.3
+C_Dh_max = 1.25
+C_Dh_alpha2 = 1
 
 # Combined Hull & Wing (surfaced, reference area: frontal)
 

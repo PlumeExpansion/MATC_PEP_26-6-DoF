@@ -4,7 +4,7 @@ if TYPE_CHECKING:
 	import model_RBird
 
 from utils import *
-from b_series_coeff import *
+from params.b_series_coeff import *
 
 class Propulsor:
 	def __init__(self, model: 'model_RBird.Model_6DoF'):
