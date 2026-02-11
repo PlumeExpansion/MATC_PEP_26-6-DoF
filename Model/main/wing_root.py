@@ -6,18 +6,19 @@ if TYPE_CHECKING:
 from utils import *
 
 class WingRoot:
-	def __init__(self, model: 'model_RBird.Model_6DoF', grounded_interp_nd, floating_interp_nd, floating_interp_near, left):
+	def __init__(self, model: 'model_RBird.Model_6DoF', grounded_interp_nd, floating_interp_nd, floating_interp_near, 
+			  aero_coeff, left):
 		self.model = model
 		self.grounded_interp_nd = grounded_interp_nd
 		self.floating_interp_nd = floating_interp_nd
 		self.floating_interp_near = floating_interp_near
-		self.left = left
 
-		self.C_L0 = self.model.get_const('C_Lwr_0')
-		self.C_Lalpha = self.model.get_const('C_Lwr_alpha',True)
-		self.C_D0 = self.model.get_const('C_Dwr_0',True)
-		self.eff = self.model.get_const('e_wr',True)
-		self.AR = self.model.get_const('AR_wr',True)
+		alpha = aero_coeff[:,0]
+		CL = aero_coeff[:,1]
+		CD = aero_coeff[:,2]
+		self.CL = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CL)
+		self.CD = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CD)
+		self.left = left
 	
 	def calc_force_moment(self):
 		query = self.model.query
@@ -45,11 +46,6 @@ class WingRoot:
 		self.F_b = self.model.Cb0 * array([0, 0, -self.model.rho*self.vol*self.model.g])
 		self.M_b = cross(self.vol_center, self.F_b)
 		# lift & drag force moment
-		self.U_mag, self.alpha, self.beta, self.Chw = stab_frame(self.model.U, self.model.omega, self.area_center, eye3)
-		Q = 1/2*self.model.rho*self.U_mag**2
-		self.C_L = self.C_L0 + self.C_Lalpha*self.alpha
-		self.C_D = self.C_D0 + self.C_L**2/(pi*self.eff*self.AR)
-		self.L = Q*self.C_L*self.area
-		self.D = Q*self.C_D*self.area
-		self.F_f = self.Chw @ array([-self.D, 0, -self.L])
-		self.M_f = cross(self.area_center, self.F_f)
+		self.U_mag, self.alpha, self.beta, self.Cbw = stab_frame(self.model.U, self.model.omega, self.area_center, eye3)
+		self.L, self.D, self.F_f, self.M_f = lift_drag(self.CL(self.alpha), self.CD(self.alpha), self.model.rho,
+												 self.area, self.U_mag, self.Cbw, self.area_center)

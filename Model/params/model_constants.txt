@@ -15,18 +15,12 @@ Ixy =
 Ixz = 
 Iyz = 
 
-B = 0.613			# beam (m)
-L_PP = 2.13			# length perpendiculars (m)
-
 A_surf = 0.1065 	# surfaced frontal area (m^2)
 
 ###################################
 # Propeller Parameters
 
 d = 0.11		# diameter (m)
-Z = 3			# blade count
-AE_AO = 0.6		# blade area ratio
-P_D = 1.4		# pitch diameter ratio
 
 eta_T = 0.95	# thrust deduction factor
 eta_Tr = 0.65	# reverse thrust deduction factor
@@ -38,8 +32,12 @@ w_f = 0.05 		# foiling wake factor
 # Motor Parameters
 
 KV = 150		# motor speed constant (RPM/V)
+KT = 0.0689		# motor torque constant (Nm/A)
 I0 = 2.7		# no load current (A)
-R0 = 0.054		# motor resistance (Ω)
+RPM0 = 3650		# no load speed (RPM)
+R = 0.013		# motor resistance (Ω)
+L = 18.2e-6		# motor inductance (H)
+J = 0.00081		# rotor inertia (kg*m^2)
 
 ##################################################################
 # Point Locations (m) (fixed axis X front, Y right, Z down)
@@ -92,72 +90,3 @@ TE_rsr = (-0.07305, -0.031211, 0)
 prop = (-0.09, 0, 0.136)	# propeller location
 
 ##################################################################
-# Lift & Drag Coefficients
-###################################
-# Hull (submerged, reference area: submerged)
-
-C_Lh_0 = 0.05
-C_Lh_alpha = 0.0383		# (deg^-1)
-alpha_h_crit = 5		# (deg)
-C_Dh_0 = 0.07
-C_Dh_max = 1.25
-C_Dh_alpha2 = 1
-
-# Combined Hull & Wing (surfaced, reference area: frontal)
-
-C_Lc_0 = 0
-C_Lc_alpha = 0.01	# (deg^-1)
-C_Dc_0 = 0.1
-C_Dc_alpha2 = 0.01	# (deg^-2)
-
-###################################
-# Wing
-
-C_Lwr_0 = 0
-C_Lwr_alpha = 0.05	# (deg^-1)
-C_Dwr_0 = 0.06
-e_wr = 0.5
-AR_wr = 0.3269
-
-C_Lv_0 = 0
-C_Lv_alpha = 0.05	# (deg^-1)
-C_Dv_0 = 0.04
-e_v = 0.6
-
-C_L1_0 = 0.35
-C_L1_alpha = 0.1	# (deg^-1)
-C_D1_0 = 0.03
-e_1 = 0.75
-
-C_L2_0 = 0.35
-C_L2_alpha = 0.1	# (deg^-1)
-C_D2_0 = 0.02
-e_2 = 0.75
-
-C_L3_0 = 0
-C_L3_alpha = 0.1	# (deg^-1)
-C_D3_0 = 0.015
-e_3 = 0.75
-
-###################################
-# Rear Wing
-
-C_Lr1_0 = 0.07
-C_Lr1_alpha = 0.1	# (deg^-1)
-C_Dr1_0 = 0.015
-e_r1 = 0.75
-
-C_Lr2_0 = 0.07
-C_Lr2_alpha = 0.1	# (deg^-1)
-C_Dr2_0 = 0.015
-e_r2 = 0.75
-
-C_Lrv_0 = 0
-C_Lrv_alpha = 0.05	# (deg^-1)
-C_Drv_0 = 0.015
-e_rv = 0.6
-
-C_Lrs_0 = 0
-C_Lrs_alpha = 0.05	# (deg^-1)
-C_Drs_0 = 0.015
-e_rs = 0.6

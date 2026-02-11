@@ -7,30 +7,27 @@ if TYPE_CHECKING:
 from utils import *
 
 class Hull:
-	def __init__(self, model: 'model_RBird.Model_6DoF', grounded_interp_nd, floating_interp_nd, floating_interp_near):
+	def __init__(self, model: 'model_RBird.Model_6DoF', grounded_interp_nd, floating_interp_nd, floating_interp_near, 
+			  hull_aero_coeff, surf_aero_coeff):
 		self.model = model
 		self.grounded_interp_nd = grounded_interp_nd
 		self.floating_interp_nd = floating_interp_nd
 		self.floating_interp_near = floating_interp_near
 		
-		self.C_L0 = self.model.get_const('C_Lh_0')
-		self.C_Lalpha = self.model.get_const('C_Lh_alpha',True)
-		self.C_D0 = self.model.get_const('C_Dh_0',True)
-		self.eff = self.model.get_const('e_h',True)
+		alpha_h = hull_aero_coeff[:,0]
+		CL_h = hull_aero_coeff[:,1]
+		CD_h = hull_aero_coeff[:,2]
+		self.CL_h = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_h, CL_h)
+		self.CD_h = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_h, CD_h)
 
-		self.C_Lc_0 = self.model.get_const('C_Lc_0')
-		self.C_Lc_alpha = self.model.get_const('C_Lc_alpha',True)
-		self.C_Dc_0 = self.model.get_const('C_Dc_0',True)
-		self.C_Dc_alpha2 = self.model.get_const('C_Dc_alpha2',True)
+		alpha_surf = hull_aero_coeff[:,0]
+		CL_surf = hull_aero_coeff[:,1]
+		CD_surf = hull_aero_coeff[:,2]
+		self.CL_surf = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_surf, CL_surf)
+		self.CD_surf = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_surf, CD_surf)
 
-		self.beam = self.model.get_const('B',True)
-		self.L_PP = self.model.get_const('L_PP',True)
-		
-		self.L_PP = self.model.get_const('L_PP',True)
 		self.area_surf = self.model.get_const('A_surf',True)
 		self.r_surf = self.model.get_const('r_surf')
-
-		self.AR = self.beam / self.L_PP
 
 		disp0 = self.model.m / self.model.rho
 		sol = root_scalar(lambda z: grounded_interp_nd(array([z,0,0]))[0][0] - disp0, bracket=[0,0.18], method='brentq')
@@ -61,19 +58,10 @@ class Hull:
 		self.M_b = cross(self.vol_center, self.F_b)
 		# hull lift & drag force moment
 		self.U_mag, self.alpha, self.beta, self.Chw = stab_frame(self.model.U, self.model.omega, self.area_center, eye3)
-		Q = 1/2*self.model.rho*self.U_mag**2
-		self.C_L = self.C_L0 + self.C_Lalpha*self.alpha
-		self.C_D = self.C_D0 + self.C_L**2/(pi*self.eff*self.AR)
-		self.L = Q*self.C_L*self.area
-		self.D = Q*self.C_D*self.area
-		self.F_h = self.Chw @ array([-self.D, 0, -self.L])
-		self.M_h = cross(self.area_center, self.F_h)
+		self.L_h, self.D_h, self.F_h, self.M_h = lift_drag(self.CL_h(self.alpha), self.CD_h(self.alpha), self.model.rho, 
+												 self.area, self.U_mag, self.Chw, self.area_center)
 		# combined lift & drag force moment
-		self.c_U_mag, self.c_alpha, self.c_beta, self.c_Chw = stab_frame(self.model.U, self.model.omega, self.r_surf, eye3)
-		Q = 1/2*self.model.rho_surf*self.c_U_mag**2
-		self.C_L_c = self.C_Lc_0 + self.C_Lc_alpha*self.c_alpha
-		self.C_D_c = self.C_Dc_0 + self.C_Dc_alpha2*self.c_alpha**2
-		self.L_c = Q*self.C_L_c*self.area_surf
-		self.D_c = Q*self.C_D_c*self.area_surf
-		self.F_c = self.c_Chw @ array([-self.D_c, 0, -self.L_c])
-		self.M_c = cross(self.r_surf, self.F_c)
+		self.U_mag_surf, self.alpha_surf, self.beta_surf, self.Chw_surf = stab_frame(self.model.U, self.model.omega, self.r_surf, eye3)
+		(self.L_surf, self.D_surf, 
+   		self.F_surf, self.M_surf) = lift_drag(self.CL_surf(self.alpha_surf), self.CD_surf(self.alpha_surf), 
+										   self.model.rho_surf, self.area_surf, self.U_mag_surf, self.Chw_surf, self.r_surf)

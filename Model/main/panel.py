@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 from utils import *
 
 class Panel:
-	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, coeff_interp_nd, rear):
+	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, aero_coeff, rear):
 		self.model = model
 		self.id = id
 		self.r_LE_1 = r_list[0]
@@ -14,10 +14,11 @@ class Panel:
 		self.r_TE_1 = r_list[2]
 		self.r_TE_2 = r_list[3]
 
-		self.C_L0 = C_L0
-		self.C_Lalpha = C_Lalpha
-		self.C_D0 = C_D0
-		self.eff = eff
+		alpha = aero_coeff[:,0]
+		CL = aero_coeff[:,1]
+		CD = aero_coeff[:,2]
+		self.CL = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CL)
+		self.CD = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CD)
 		self.rear = rear
 
 		self.r_qc_1 = 3/4 * self.r_LE_1 + 1/4 * self.r_TE_1
@@ -27,9 +28,6 @@ class Panel:
 		self.c2 = mag(self.r_LE_2 - self.r_TE_2)
 
 		self.s = mag(projYZ @ (self.r_LE_1 - self.r_LE_2))
-
-		self.AR = self.s/(self.c1 + self.c2)*2
-		print(self.id, self.AR)
 
 		self.gamma = arccos(unit(projYZ @ self.r_LE_1 - self.r_LE_2) @ -yHat)
 		if self.gamma > pi/2:
@@ -56,13 +54,8 @@ class Panel:
 	# calc_submergence must be called once prior
 	def calc_force_moment(self, U, omega):
 		self.U_mag, self.alpha, self.beta, self.Cfw = stab_frame(U, omega, self.r_qc_fC_body, self.get_Cfb())
-		Q = 1/2*self.model.rho*self.U_mag**2
-		self.C_L = self.C_L0 + self.C_Lalpha*self.alpha
-		self.C_D = self.C_D0 + self.C_L**2/(pi*self.eff*self.AR)
-		self.L = Q*self.C_L*self.A
-		self.D = Q*self.C_D*self.A
-		self.F_f = self.get_Cbf() @ self.Cfw @ array([-self.D, 0, -self.L])
-		self.M_f = cross(self.r_qc_fC_body, self.F_f)
+		self.L, self.D, self.F_f, self.M_f = lift_drag(self.CL(self.alpha), self.CD(self.alpha), self.model.rho,
+												 self.A, self.U_mag, self.get_Cbf() @ self.Cfw, self.r_qc_fC_body)
 
 	def calc_submergence(self):
 		self.oneLower = self.to_world(self.r_qc_1)[2] > self.to_world(self.r_qc_2)[2]

@@ -4,7 +4,8 @@ from numpy import (cos, sin, tan, pi,
 				   arccos, arcsin, arctan2, 
 				   cross, array, min, max, clip, sign, 
 				   eye, zeros, ones, 
-				   polyfit, polyval, roots, linspace)
+				   polyfit, polyval, roots, linspace, interp,
+				   rad2deg, deg2rad)
 
 xHat = array([1, 0 ,0])
 yHat = array([0, 1 ,0])
@@ -46,3 +47,11 @@ def stab_frame(U, omega, X, C_loc_ref):
 		[sin(alpha)*cos(beta), -sin(alpha)*sin(beta), cos(alpha)]
 	])
 	return U_mag, alpha, beta, C_loc_stab
+
+def lift_drag(CL, CD, rho, A, U_mag, Cbw, r_qc):
+	Q = 1/2*rho*U_mag**2
+	L = Q*CL*A
+	D = Q*CD*A
+	F = Cbw @ array([-D, 0, -L])
+	M = cross(r_qc, F)
+	return L, D, F, M

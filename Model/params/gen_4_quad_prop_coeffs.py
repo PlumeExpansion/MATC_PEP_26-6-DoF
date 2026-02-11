@@ -42,7 +42,6 @@ def main():
 	export = True
 	plot = False
 
-	
 	f_coeffs = load_fourrier_coeffs(input_file)
 	beta = np.linspace(0,2*np.pi,360)
 	CT_CQ = calc_4_quad_propeller_coeffs(beta,f_coeffs)
