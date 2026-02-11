@@ -7,22 +7,21 @@ if TYPE_CHECKING:
 from utils import *
 
 class Hull:
-	def __init__(self, model: 'model_RBird.Model_6DoF', grounded_interp_nd, floating_interp_nd, floating_interp_near, 
-			  hull_aero_coeff, surf_aero_coeff):
+	def __init__(self, model: 'model_RBird.Model_6DoF', g_linear, f_linear, f_nearest, hull_aero_coeffs, surf_aero_coeffs):
 		self.model = model
-		self.grounded_interp_nd = grounded_interp_nd
-		self.floating_interp_nd = floating_interp_nd
-		self.floating_interp_near = floating_interp_near
+		self.g_linear = g_linear
+		self.f_linear = f_linear
+		self.f_nearest = f_nearest
 		
-		alpha_h = hull_aero_coeff[:,0]
-		CL_h = hull_aero_coeff[:,1]
-		CD_h = hull_aero_coeff[:,2]
+		alpha_h = hull_aero_coeffs[:,0]
+		CL_h = hull_aero_coeffs[:,1]
+		CD_h = hull_aero_coeffs[:,2]
 		self.CL_h = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_h, CL_h)
 		self.CD_h = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_h, CD_h)
 
-		alpha_surf = hull_aero_coeff[:,0]
-		CL_surf = hull_aero_coeff[:,1]
-		CD_surf = hull_aero_coeff[:,2]
+		alpha_surf = surf_aero_coeffs[:,0]
+		CL_surf = surf_aero_coeffs[:,1]
+		CD_surf = surf_aero_coeffs[:,2]
 		self.CL_surf = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_surf, CL_surf)
 		self.CD_surf = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha_surf, CD_surf)
 
@@ -30,29 +29,16 @@ class Hull:
 		self.r_surf = self.model.get_const('r_surf')
 
 		disp0 = self.model.m / self.model.rho
-		sol = root_scalar(lambda z: grounded_interp_nd(array([z,0,0]))[0][0] - disp0, bracket=[0,0.18], method='brentq')
+		sol = root_scalar(lambda z: g_linear(array([z,0,0]))[0][0] - disp0, bracket=[0,0.18], method='brentq')
 		if sol.converged:
 			z0 = sol.root
-			self.area0 = self.grounded_interp_nd(array([z0,0,0]))[0][1]
+			self.area0 = self.g_linear(array([z0,0,0]))[0][1]
 		else:
-			self.model.init_errors += 1
-			print(f'ERROR: initial waterline height failed to converge, termination flag: {sol.flag}')
-
-	def calc_force_moment(self):
-		grounded = self.grounded_interp_nd(self.model.query)
-		floating = self.floating_interp_nd(self.model.query)
-		if np.any(np.isnan(floating)):
-			floating = self.floating_interp_near(self.model.query)
-			print(f"INFO: hull parameters using nearest interpolation - [z, pitch, roll] = {self.model.query}")
-		self.vol = grounded[0][0]
-		self.area = grounded[0][1]
-		if self.vol < 1e-6 or self.area < 1e-6:
-			return zero3, zero3
-		if np.any(np.isnan(grounded)):
-			print(f"ERROR: hull parameter interpolation bounds exceeded - [z, pitch, roll] = {self.model.query}")
-			return zero3, zero3
-		self.vol_center = floating[0][0:3]
-		self.area_center = floating[0][3:6]
+			raise Exception(f'initial waterline failed to converge - {sol.flag}')
+	
+	def calc_force_moments(self):
+		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.g_linear, self.f_linear, 
+																		self.f_nearest, self.model.query, 'hull')
 		# buoyant force moment
 		self.F_b = self.model.Cb0 * array([0, 0, -self.model.rho*self.vol*self.model.g])
 		self.M_b = cross(self.vol_center, self.F_b)

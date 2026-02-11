@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 from utils import *
 
 class Panel:
-	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, aero_coeff, rear):
+	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, aero_coeffs, rear):
 		self.model = model
 		self.id = id
 		self.r_LE_1 = r_list[0]
@@ -14,9 +14,9 @@ class Panel:
 		self.r_TE_1 = r_list[2]
 		self.r_TE_2 = r_list[3]
 
-		alpha = aero_coeff[:,0]
-		CL = aero_coeff[:,1]
-		CD = aero_coeff[:,2]
+		alpha = aero_coeffs[:,0]
+		CL = aero_coeffs[:,1]
+		CD = aero_coeffs[:,2]
 		self.CL = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CL)
 		self.CD = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CD)
 		self.rear = rear
@@ -51,13 +51,13 @@ class Panel:
 			self.to_world = lambda r: self.model.body_to_world(r)
 			self.to_body = lambda r: r
 
-	# calc_submergence must be called once prior
-	def calc_force_moment(self, U, omega):
-		self.U_mag, self.alpha, self.beta, self.Cfw = stab_frame(U, omega, self.r_qc_fC_body, self.get_Cfb())
+	def calc_force_moments(self):
+		self.__calc_submergence()
+		self.U_mag, self.alpha, self.beta, self.Cfw = stab_frame(self.model.U, self.model.omega, self.r_qc_fC_body, self.get_Cfb())
 		self.L, self.D, self.F_f, self.M_f = lift_drag(self.CL(self.alpha), self.CD(self.alpha), self.model.rho,
 												 self.A, self.U_mag, self.get_Cbf() @ self.Cfw, self.r_qc_fC_body)
 
-	def calc_submergence(self):
+	def __calc_submergence(self):
 		self.oneLower = self.to_world(self.r_qc_1)[2] > self.to_world(self.r_qc_2)[2]
 		if self.oneLower:
 			r_qc_1 = self.r_qc_2
