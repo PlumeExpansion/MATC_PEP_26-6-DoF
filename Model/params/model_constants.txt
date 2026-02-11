@@ -23,7 +23,6 @@ A_surf = 0.1065 	# surfaced frontal area (m^2)
 d = 0.11		# diameter (m)
 
 eta_T = 0.95	# thrust deduction factor
-eta_Tr = 0.65	# reverse thrust deduction factor
 
 w_fs = 0.15		# fully submerged wake factor
 w_f = 0.05 		# foiling wake factor
@@ -32,7 +31,7 @@ w_f = 0.05 		# foiling wake factor
 # Motor Parameters
 
 KV = 150		# motor speed constant (RPM/V)
-KT = 0.0689		# motor torque constant (Nm/A)
+Kt = 0.0689		# motor torque constant (Nm/A)
 I0 = 2.7		# no load current (A)
 RPM0 = 3650		# no load speed (RPM)
 R = 0.013		# motor resistance (Ω)
