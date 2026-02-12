@@ -37,8 +37,10 @@ class Hull:
 			raise Exception(f'initial waterline failed to converge - {sol.flag}')
 	
 	def calc_force_moments(self):
+		query = self.model.query.copy()
+		query[2] = abs(query[2])
 		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.g_linear, self.f_linear, 
-																		self.f_nearest, self.model.query, 'hull')
+																		self.f_nearest, query, 'hull')
 		# buoyant force moment
 		self.F_b = self.model.Cb0 @ array([0, 0, -self.model.rho*self.vol*self.model.g])
 		self.M_b = cross(self.vol_center, self.F_b)

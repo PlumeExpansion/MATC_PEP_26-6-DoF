@@ -207,8 +207,8 @@ class Model_6DoF:
 
 	def __calc_query(self):
 		z = self.body_to_world(-self.r_CM)[2]
-		pitch = self.omega[1]
-		roll = self.omega[0]
+		pitch = rad2deg(self.Phi[1])
+		roll = rad2deg(self.Phi[0])
 		self.query = array([z, pitch, roll])
 
 	def calc_state_dot(self):
@@ -305,7 +305,7 @@ class Model_6DoF:
 		return self.C0b @ r + self.r
 
 def make_default():
-	return Model_6DoF('params/model_constants.txt','params/hull_data.csv','params/left_wing_root_data.csv',
+	return Model_6DoF('params/model_constants.txt','params/hull_data_combined.csv','params/left_wing_root_data_combined.csv',
 			'params/sample aero coeffs/','params/4 quad prop data/thrust torque coeffs/B4-70-14.txt')
 
 def main():
