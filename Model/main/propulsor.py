@@ -44,6 +44,19 @@ class Propulsor:
 		# default inputs
 		self.epsilon = 0
 
+	def get_state(self):
+		return array([self.I, self.omega])
+	def get_state_dot(self):
+		return array([self.I_dot, self.omega_dot])
+	def set_state(self, state):
+		self.I = state[0]
+		self.omega = state[1]
+
+	def get_input(self):
+		return self.epsilon
+	def set_input(self, input):
+		self.epsilon = input
+
 	def calc_state_dot(self):
 		self.I_dot = (self.epsilon - self.R*self.I - self.Ke*self.omega)/self.L
 		self.omega_dot = (self.Kt*self.I - self.b*self.omega - self.Q)/self.J
@@ -58,7 +71,7 @@ class Propulsor:
 		self.Vrot = 0.7*pi*self.n*self.d
 		Vr2 = self.VA**2 + self.Vrot**2
 		if Vr2 < 1e-12:
-			self.F_p, self.M_p = zero3, zero3
+			self.T, self.Q, self.F_p, self.M_p = 0, 0, zero3, zero3
 		else:
 			self.beta = arctan2(self.VA, self.Vrot)
 			z_d_2_world = self.model.ra_to_world(self.r_d_2)[2]

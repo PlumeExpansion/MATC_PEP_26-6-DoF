@@ -5,7 +5,7 @@ from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 from numpy import (cos, sin, tan, pi, transpose, 
 				   arccos, arcsin, arctan2, 
 				   cross, array, min, max, clip, sign, sqrt, 
-				   eye, zeros, ones, 
+				   eye, zeros, ones, concatenate, 
 				   polyfit, polyval, roots, linspace, interp,
 				   rad2deg, deg2rad)
 

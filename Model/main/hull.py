@@ -40,7 +40,7 @@ class Hull:
 		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.g_linear, self.f_linear, 
 																		self.f_nearest, self.model.query, 'hull')
 		# buoyant force moment
-		self.F_b = self.model.Cb0 * array([0, 0, -self.model.rho*self.vol*self.model.g])
+		self.F_b = self.model.Cb0 @ array([0, 0, -self.model.rho*self.vol*self.model.g])
 		self.M_b = cross(self.vol_center, self.F_b)
 		# hull lift & drag force moment
 		self.U_mag, self.alpha, self.beta, self.Chw = stab_frame(self.model.U, self.model.omega, self.area_center, eye3)

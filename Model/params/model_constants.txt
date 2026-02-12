@@ -7,13 +7,13 @@ g = 9.81			# gravitational constant (m/s^2)
 rho = 1011			# water density (kg/m^3)
 rho_surf = 1.225	# air density (kg/m^3)
 
-Ixx = 
-Iyy = 
-Izz = 
+Ixx = 2
+Iyy = 10
+Izz = 11
 
-Ixy = 
-Ixz = 
-Iyz = 
+Ixy = 0
+Ixz = 0
+Iyz = 0
 
 A_surf = 0.1065 	# surfaced frontal area (m^2)
 

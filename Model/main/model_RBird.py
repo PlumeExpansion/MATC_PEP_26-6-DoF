@@ -9,6 +9,7 @@ class Model_6DoF:
 		self.accessed_constants = set()
 		self.invalid_constants = set()
 		self.init_errors = 0
+		print('INFO: loading constants')
 		try:
 			self.constants = load_constants(path_constants)
 			self.__commit_params()
@@ -25,11 +26,18 @@ class Model_6DoF:
 		# default inputs
 		self.psi_ra = 0
 		
-		self.init_errors += self.__make_panels(path_aero_coeffs_root)
-		self.init_errors += self.__make_hull(path_hull, path_aero_coeffs_root)
+		make_errors = 0
+		print('INFO: making panels...')
+		make_errors += self.__make_panels(path_aero_coeffs_root)
+		print('INFO: making hull...')
+		make_errors += self.__make_hull(path_hull, path_aero_coeffs_root)
 
-		self.init_errors += self.__make_wing_roots(path_wing_root, path_aero_coeffs_root)
-		self.init_errors += self.__make_propulsor(path_propulsor)
+		print('INFO: making wing roots')
+		make_errors += self.__make_wing_roots(path_wing_root, path_aero_coeffs_root)
+		print('INFO: making propulsor')
+		make_errors += self.__make_propulsor(path_propulsor)
+		print(f'INFO: components initialized with {make_errors} error(s)')
+		self.init_errors += make_errors
 
 		to_fix = list(self.missing_constants.union(self.invalid_constants))
 		to_fix.sort()
@@ -58,6 +66,8 @@ class Model_6DoF:
 
 		if self.init_errors > 0:
 			print(f'\nINFO: {self.init_errors} initialization error(s)', end='')
+		else:
+			print(f'INFO: model intialized succesfully')
 		
 		if to_exit:
 			print(f', exiting')
@@ -72,9 +82,9 @@ class Model_6DoF:
 		Ixx = self.get_const('Ixx',True)
 		Iyy = self.get_const('Iyy',True)
 		Izz = self.get_const('Izz',True)
-		Ixy = self.get_const('Ixy',True)
-		Ixz = self.get_const('Ixz',True)
-		Iyz = self.get_const('Iyz',True)
+		Ixy = self.get_const('Ixy')
+		Ixz = self.get_const('Ixz')
+		Iyz = self.get_const('Iyz')
 
 		self.Ib = array([
 			[Ixx, Ixy, Ixz],
@@ -82,7 +92,7 @@ class Model_6DoF:
 			[Ixz, Iyz, Izz]
 		])
 
-		self.Ib_inv = np.invert(self.Ib)
+		self.Ib_inv = LA.inv(self.Ib)
 		
 		self.r_CM = self.get_const('r_CM')
 		self.r_ra = self.get_const('r_ra')
@@ -196,7 +206,7 @@ class Model_6DoF:
 		return 0
 
 	def __calc_query(self):
-		z = self.body_to_world(-self.r_CM)
+		z = self.body_to_world(-self.r_CM)[2]
 		pitch = self.omega[1]
 		roll = self.omega[0]
 		self.query = array([z, pitch, roll])
@@ -204,8 +214,8 @@ class Model_6DoF:
 	def calc_state_dot(self):
 		F = zero3.copy()
 		M = zero3.copy()
-		self.__calc_query()
 		self.__calc_rot_mats()
+		self.__calc_query()
 
 		for panels in self.panels.values():
 			for panel in panels:
@@ -272,13 +282,33 @@ class Model_6DoF:
 		])
 		self.Cra_b = transpose(self.Cb_ra)
 
+	def get_state(self):
+		return concatenate((self.U, self.omega, self.Phi, self.r))
+	def get_state_dot(self):
+		return concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot))
+	def set_state(self, state):
+		self.U = state[0:3]
+		self.omega = state[3:6]
+		self.Phi = state[6:9]
+		self.r = state[9:12]
+	
+	def get_input(self):
+		return self.psi_ra
+	def set_input(self, input):
+		self.psi_ra = input
+
 	def ra_to_body(self, r):
 		return self.r_ra + self.Cb_ra @ r
 	def ra_to_world(self, r):
 		return self.C0b @ self.ra_to_body(r) + self.r
 	def body_to_world(self, r):
 		return self.C0b @ r + self.r
-			
-if __name__ == '__main__':
-	Model_6DoF('params/model_constants.txt','params/hull_data.csv','params/left_wing_root_data.csv',
+
+def make_default():
+	return Model_6DoF('params/model_constants.txt','params/hull_data.csv','params/left_wing_root_data.csv',
 			'params/sample aero coeffs/','params/4 quad prop data/thrust torque coeffs/B4-70-14.txt')
+
+def main():
+	make_default()
+
+if __name__ == '__main__': main()
