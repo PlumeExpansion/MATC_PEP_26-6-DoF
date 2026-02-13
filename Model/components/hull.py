@@ -1,13 +1,13 @@
 import numpy as np
 from scipy.optimize import root_scalar
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-	import model_RBird
-
-from utils import *
+	from model_RBird import Model_6DoF
+from components.utils import *
 
 class Hull:
-	def __init__(self, model: 'model_RBird.Model_6DoF', rg_interp, hull_aero_coeffs, surf_aero_coeffs):
+	def __init__(self, model: 'Model_6DoF', rg_interp, hull_aero_coeffs, surf_aero_coeffs):
 		self.model = model
 		self.rg_interp = rg_interp
 		
@@ -29,8 +29,8 @@ class Hull:
 		disp0 = self.model.m / self.model.rho
 		sol = root_scalar(lambda z: rg_interp(array([z,0,0]))[0][0] - disp0, bracket=[0,0.18], method='brentq')
 		if sol.converged:
-			z0 = sol.root
-			self.area0 = self.rg_interp(array([z0,0,0]))[0][1]
+			self.z0 = sol.root
+			self.area0 = self.rg_interp(array([self.z0,0,0]))[0][1]
 		else:
 			raise Exception(f'initial waterline failed to converge - {sol.flag}')
 	

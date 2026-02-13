@@ -1,12 +1,12 @@
 import numpy as np
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-	import model_RBird
-
-from utils import *
+	from model_RBird import Model_6DoF
+from components.utils import *
 
 class WingRoot:
-	def __init__(self, model: 'model_RBird.Model_6DoF', rg_interp, aero_coeffs, left):
+	def __init__(self, model: 'Model_6DoF', rg_interp, aero_coeffs, left):
 		self.model = model
 		self.rg_interp = rg_interp
 

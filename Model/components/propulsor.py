@@ -1,12 +1,12 @@
 import numpy as np
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-	import model_RBird
-
-from utils import *
+	from model_RBird import Model_6DoF
+from components.utils import *
 
 class Propulsor:
-	def __init__(self, model: 'model_RBird.Model_6DoF', thrust_torque_coeffs):
+	def __init__(self, model: 'Model_6DoF', thrust_torque_coeffs):
 		self.model = model
 
 		self.d = self.model.get_const('d',True)

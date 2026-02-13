@@ -1,12 +1,12 @@
 import numpy as np
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-	import model_RBird
-
-from utils import *
+	from model_RBird import Model_6DoF
+from components.utils import *
 
 class Panel:
-	def __init__(self, model: 'model_RBird.Model_6DoF', id, r_list, aero_coeffs, rear):
+	def __init__(self, model: 'Model_6DoF', id, r_list, aero_coeffs, rear):
 		self.model = model
 		self.id = id
 		self.r_LE_1 = r_list[0]

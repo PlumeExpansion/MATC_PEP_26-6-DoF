@@ -1,7 +1,10 @@
 import numpy as np
 
-from utils import *
-import panel, hull, wing_root, propulsor
+from components.utils import *
+from components.panel import Panel
+from components.hull import Hull
+from components.propulsor import Propulsor
+from components.wing_root import WingRoot
 
 class Model_6DoF:
 	def __init__(self, path_constants, path_hull, path_wing_root, path_aero_coeffs_root, path_propulsor):
@@ -124,7 +127,7 @@ class Model_6DoF:
 			'rs': ('rsr', 'rvs'),
 		}
 
-		self.panels: dict[str, tuple[panel.Panel, panel.Panel]] = {}
+		self.panels: dict[str, tuple[Panel, Panel]] = {}
 		errors = 0
 
 		for id, params in panel_params.items():
@@ -150,8 +153,8 @@ class Model_6DoF:
 		r_TE_2 = self.get_const('r_TE_'+id_2)
 		r_list = [r - self.r_CM for r in [r_LE_1,r_LE_2,r_TE_1,r_TE_2]]
 
-		panel_left = panel.Panel(self, id, r_list, aero_coeffs, rear)
-		panel_right = panel.Panel(self, id, [flipY @ r for r in r_list], aero_coeffs, rear)
+		panel_left = Panel(self, id, r_list, aero_coeffs, rear)
+		panel_right = Panel(self, id, [flipY @ r for r in r_list], aero_coeffs, rear)
 		return panel_left, panel_right, 0
 
 	def __make_hull(self, path_hull, path_aero_coeffs_root):
@@ -171,7 +174,7 @@ class Model_6DoF:
 			print(f'ERROR: failed to load surfaced aerodynamic coefficients - {e}')
 			return 1
 		try:
-			self.hull = hull.Hull(self, rg_interp, hull_aero_coeffs, surf_aero_coeffs)
+			self.hull = Hull(self, rg_interp, hull_aero_coeffs, surf_aero_coeffs)
 		except Exception as e:
 			print(f'ERROR: failed to make hull - {e}')
 			return 1
@@ -188,8 +191,8 @@ class Model_6DoF:
 		except Exception as e:
 			print(f'ERROR: failed to load wing root aerodynamic coefficients - {e}')
 			return 1
-		wr_L = wing_root.WingRoot(self, rg_interp, aero_coeffs, True)
-		wr_R = wing_root.WingRoot(self, rg_interp, aero_coeffs, False)
+		wr_L = WingRoot(self, rg_interp, aero_coeffs, True)
+		wr_R = WingRoot(self, rg_interp, aero_coeffs, False)
 		self.wing_roots = (wr_L, wr_R)
 		return 0
 
@@ -199,7 +202,7 @@ class Model_6DoF:
 		except Exception as e:
 			print(f'ERROR: failed to load propulsor data - {e}')
 			return 1
-		self.propulsor = propulsor.Propulsor(self, thrust_torque_coeffs)
+		self.propulsor = Propulsor(self, thrust_torque_coeffs)
 		return 0
 
 	def __calc_query(self):
@@ -230,6 +233,7 @@ class Model_6DoF:
 		M += self.hull.M_h + self.hull.M_b + self.hull.M_surf
 
 		self.propulsor.calc_force_moments()
+		self.propulsor.calc_state_dot()
 		F += self.propulsor.F_p
 		M += self.propulsor.M_p
 
@@ -280,19 +284,21 @@ class Model_6DoF:
 		self.Cra_b = transpose(self.Cb_ra)
 
 	def get_state(self):
-		return concatenate((self.U, self.omega, self.Phi, self.r))
+		return concatenate((self.U, self.omega, self.Phi, self.r, self.propulsor.get_state()))
 	def get_state_dot(self):
-		return concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot))
+		return concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot, self.propulsor.get_state_dot()))
 	def set_state(self, state):
 		self.U = state[0:3]
 		self.omega = state[3:6]
 		self.Phi = state[6:9]
 		self.r = state[9:12]
+		self.propulsor.set_state(state[12:14])
 	
 	def get_input(self):
-		return self.psi_ra
+		return array([self.psi_ra, self.propulsor.get_input()])
 	def set_input(self, input):
-		self.psi_ra = input
+		self.psi_ra = input[0]
+		self.propulsor.set_input(input[1])
 
 	def ra_to_body(self, r):
 		return self.r_ra + self.Cb_ra @ r
@@ -306,6 +312,7 @@ def make_default():
 			'params/sample aero coeffs/','params/4 quad prop data/thrust torque coeffs/B4-70-14.txt')
 
 def main():
-	make_default()
+	model = make_default()
+	print(model.hull.z0)
 
 if __name__ == '__main__': main()
