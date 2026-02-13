@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import numpy.linalg as LA
-from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
+from scipy.interpolate import RegularGridInterpolator
 from numpy import (cos, sin, tan, pi, transpose, 
 				   arccos, arcsin, arctan2, 
 				   cross, array, min, max, clip, sign, sqrt, 
@@ -113,26 +113,9 @@ input_cols = ['Z','Pitch','Roll']
 grounded_cols = ['Volume','Area']
 floating_cols = ['VCx','VCy','VCz','ACx','ACy','ACz']
 
-def load_volume_area_data(path):
-	df = pd.read_csv(path)
-	df = df.apply(pd.to_numeric, errors='coerce')
-	missing_cols = set(input_cols + grounded_cols + floating_cols) - set(df.columns)
-	if missing_cols:
-		raise Exception(f'missing column(s) {missing_cols}')
-	else:
-		return df
-
-def interp_volume_area(df):
-	df_grounded = df.dropna(subset=grounded_cols)
-	df_floating = df.dropna(subset=floating_cols)
-	inputs_grounded = df_grounded[input_cols].values
-	inputs_floating = df_floating[input_cols].values
-	outputs_grounded = df_grounded[grounded_cols].values
-	outputs_floating = df_floating[floating_cols].values
-	grounded_linear = LinearNDInterpolator(inputs_grounded, outputs_grounded)
-	floating_linear = LinearNDInterpolator(inputs_floating, outputs_floating)
-	floating_nearest = NearestNDInterpolator(inputs_floating, outputs_floating)
-	return grounded_linear, floating_linear, floating_nearest
+def load_volume_area_data_interp(path_npz):
+	data = np.load(path_npz)
+	return RegularGridInterpolator((data['z_range'], data['pitch_range'], data['roll_range']), data['grid_results'], bounds_error=False)
 
 def load_aero_coeffs(path):
 	cols = ['Alpha','CL','CD']
@@ -164,19 +147,12 @@ def load_propulsor_data(path_coeffs):
 		df = df.dropna()
 		return df[cols].to_numpy()
 
-def query_volume_area(g_linear, f_linear, f_nearest, query, source):
-	grounded = g_linear(query)
-	floating = f_linear(query)
-	if np.any(np.isnan(floating)):
-		floating = f_nearest(query)
-		print(f"INFO: {source} parameters using nearest interpolation - [z, pitch, roll] = {query}")
-	vol = grounded[0][0]
-	area = grounded[0][1]
+def query_volume_area(rg_interp, query):
+	output = rg_interp(query)
+	vol = output[0][0]
+	area = output[0][1]
 	if vol < 1e-6 or area < 1e-6:
 		return vol, area, zero3, zero3
-	if np.any(np.isnan(grounded)):
-		print(f"ERROR: {source} parameter interpolation bounds exceeded - [z, pitch, roll] = {query}")
-		return vol, area, zero3, zero3
-	vol_center = floating[0][0:3]
-	area_center = floating[0][3:6]
+	vol_center = output[0][0:3]
+	area_center = output[0][3:6]
 	return vol, area, vol_center, area_center

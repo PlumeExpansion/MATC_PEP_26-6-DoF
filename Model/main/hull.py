@@ -7,11 +7,9 @@ if TYPE_CHECKING:
 from utils import *
 
 class Hull:
-	def __init__(self, model: 'model_RBird.Model_6DoF', g_linear, f_linear, f_nearest, hull_aero_coeffs, surf_aero_coeffs):
+	def __init__(self, model: 'model_RBird.Model_6DoF', rg_interp, hull_aero_coeffs, surf_aero_coeffs):
 		self.model = model
-		self.g_linear = g_linear
-		self.f_linear = f_linear
-		self.f_nearest = f_nearest
+		self.rg_interp = rg_interp
 		
 		alpha_h = hull_aero_coeffs[:,0]
 		CL_h = hull_aero_coeffs[:,1]
@@ -29,18 +27,17 @@ class Hull:
 		self.r_surf = self.model.get_const('r_surf')
 
 		disp0 = self.model.m / self.model.rho
-		sol = root_scalar(lambda z: g_linear(array([z,0,0]))[0][0] - disp0, bracket=[0,0.18], method='brentq')
+		sol = root_scalar(lambda z: rg_interp(array([z,0,0]))[0][0] - disp0, bracket=[0,0.18], method='brentq')
 		if sol.converged:
 			z0 = sol.root
-			self.area0 = self.g_linear(array([z0,0,0]))[0][1]
+			self.area0 = self.rg_interp(array([z0,0,0]))[0][1]
 		else:
 			raise Exception(f'initial waterline failed to converge - {sol.flag}')
 	
 	def calc_force_moments(self):
 		query = self.model.query.copy()
 		query[2] = abs(query[2])
-		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.g_linear, self.f_linear, 
-																		self.f_nearest, query, 'hull')
+		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.rg_interp, query)
 		# buoyant force moment
 		self.F_b = self.model.Cb0 @ array([0, 0, -self.model.rho*self.vol*self.model.g])
 		self.M_b = cross(self.vol_center, self.F_b)

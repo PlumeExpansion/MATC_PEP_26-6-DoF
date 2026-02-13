@@ -65,7 +65,7 @@ class Model_6DoF:
 			print(f'INFO: {len(to_fix)} constant(s) to fix - {to_fix}', end='')
 
 		if self.init_errors > 0:
-			print(f'\nINFO: {self.init_errors} initialization error(s)', end='')
+			print(f'INFO: {self.init_errors} initialization error(s)', end='')
 		else:
 			print(f'INFO: model intialized succesfully')
 		
@@ -156,9 +156,9 @@ class Model_6DoF:
 
 	def __make_hull(self, path_hull, path_aero_coeffs_root):
 		try:
-			g_linear, f_linear, f_nearest = interp_volume_area(load_volume_area_data(path_hull))
+			rg_interp = load_volume_area_data_interp(path_hull)
 		except Exception as e:
-			print(f'ERROR: failed to load hull volume area data - {e}')
+			print(f'ERROR: failed to load/interpolate hull volume area data - {e}')
 			return 1
 		try:
 			hull_aero_coeffs = load_aero_coeffs(path_aero_coeffs_root+'hull.txt')
@@ -171,7 +171,7 @@ class Model_6DoF:
 			print(f'ERROR: failed to load surfaced aerodynamic coefficients - {e}')
 			return 1
 		try:
-			self.hull = hull.Hull(self, g_linear, f_linear, f_nearest, hull_aero_coeffs, surf_aero_coeffs)
+			self.hull = hull.Hull(self, rg_interp, hull_aero_coeffs, surf_aero_coeffs)
 		except Exception as e:
 			print(f'ERROR: failed to make hull - {e}')
 			return 1
@@ -179,20 +179,17 @@ class Model_6DoF:
 
 	def __make_wing_roots(self, path_wing_root, path_aero_coeffs_root):
 		try:
-			df = load_volume_area_data(path_wing_root)
-			g_linear_L, f_linear_L, f_nearest_L = interp_volume_area(df)
-			df[['Roll','VCy','ACy']] *= -1
-			g_linear_R, f_linear_R, f_nearest_R = interp_volume_area(df)
+			rg_interp = load_volume_area_data_interp(path_wing_root)
 		except Exception as e:
-			print(f'ERROR: failed to load wing root volume area data - {e}')
+			print(f'ERROR: failed to load/interpolate wing root volume area data - {e}')
 			return 1
 		try:
 			aero_coeffs = load_aero_coeffs(path_aero_coeffs_root+'wing_root.txt')
 		except Exception as e:
 			print(f'ERROR: failed to load wing root aerodynamic coefficients - {e}')
 			return 1
-		wr_L = wing_root.WingRoot(self, g_linear_L, f_linear_L, f_nearest_L, aero_coeffs, True)
-		wr_R = wing_root.WingRoot(self, g_linear_R, f_linear_R, f_nearest_R, aero_coeffs, False)
+		wr_L = wing_root.WingRoot(self, rg_interp, aero_coeffs, True)
+		wr_R = wing_root.WingRoot(self, rg_interp, aero_coeffs, False)
 		self.wing_roots = (wr_L, wr_R)
 		return 0
 
@@ -305,7 +302,7 @@ class Model_6DoF:
 		return self.C0b @ r + self.r
 
 def make_default():
-	return Model_6DoF('params/model_constants.txt','params/hull_data_combined.csv','params/left_wing_root_data_combined.csv',
+	return Model_6DoF('params/model_constants.txt','params/hull_data_regular_grid.npz','params/left_wing_root_data_regular_grid.npz',
 			'params/sample aero coeffs/','params/4 quad prop data/thrust torque coeffs/B4-70-14.txt')
 
 def main():

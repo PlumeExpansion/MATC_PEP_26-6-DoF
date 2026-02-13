@@ -6,22 +6,26 @@ if TYPE_CHECKING:
 from utils import *
 
 class WingRoot:
-	def __init__(self, model: 'model_RBird.Model_6DoF', g_linear, f_linear, f_nearest, aero_coeffs, left):
+	def __init__(self, model: 'model_RBird.Model_6DoF', rg_interp, aero_coeffs, left):
 		self.model = model
-		self.g_linear = g_linear
-		self.f_linear = f_linear
-		self.f_nearest = f_nearest
+		self.rg_interp = rg_interp
 
 		alpha = aero_coeffs[:,0]
 		CL = aero_coeffs[:,1]
 		CD = aero_coeffs[:,2]
 		self.CL = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CL)
 		self.CD = lambda alpha_rad: interp(rad2deg(alpha_rad), alpha, CD)
-		self.source = f'{"left" if left else "right"} wing root'
+
+		self.left = left
 	
 	def calc_force_moments(self):
-		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.g_linear, self.f_linear, 
-																			   self.f_nearest, self.model.query, self.source)
+		query = self.model.query.copy()
+		if self.left:
+			query[2] *= -1
+		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.rg_interp, query)
+		if self.left:
+			self.vol_center[1] *= -1
+			self.area_center[1] *= -1
 		# buoyant force moment
 		self.F_b = self.model.Cb0 @ array([0, 0, -self.model.rho*self.vol*self.model.g])
 		self.M_b = cross(self.vol_center, self.F_b)
