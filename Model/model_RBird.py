@@ -21,15 +21,13 @@ class Model_6DoF:
 			self.init_errors += 1
 
 		# default states
-		self.U = zeros(3)
-		self.omega = zeros(3)
-		self.Phi = zeros(3)
-		self.r = zeros(3)
+		self.U = np.zeros(3)
+		self.omega = np.zeros(3)
+		self.Phi = np.zeros(3)
+		self.r = np.zeros(3)
 
 		# default inputs
 		self.psi_ra = 0
-		
-		self.__calc_rot_mats()
 
 		make_errors = 0
 		print('INFO: making panels...')
@@ -37,9 +35,9 @@ class Model_6DoF:
 		print('INFO: making hull...')
 		make_errors += self.__make_hull(path_hull, path_aero_coeffs_root)
 
-		print('INFO: making wing roots')
+		print('INFO: making wing roots...')
 		make_errors += self.__make_wing_roots(path_wing_root, path_aero_coeffs_root)
-		print('INFO: making propulsor')
+		print('INFO: making propulsor...')
 		make_errors += self.__make_propulsor(path_propulsor)
 		print(f'INFO: components initialized with {make_errors} error(s)')
 		self.init_errors += make_errors
@@ -78,6 +76,8 @@ class Model_6DoF:
 			print(f', exiting')
 			exit()
 
+		self.calc_state_dot()
+
 	def __commit_params(self):
 		self.m = self.get_const('m',True)
 		self.g = self.get_const('g',True)
@@ -91,7 +91,7 @@ class Model_6DoF:
 		Ixz = self.get_const('Ixz')
 		Iyz = self.get_const('Iyz')
 
-		self.Ib = array([
+		self.Ib = np.array([
 			[Ixx, Ixy, Ixz],
 			[Ixy, Iyy, Iyz],
 			[Ixz, Iyz, Izz]
@@ -130,12 +130,15 @@ class Model_6DoF:
 		}
 
 		self.panels: dict[str, tuple[Panel, Panel]] = {}
+		self.panel_list: list[Panel] = []
 		errors = 0
 
 		for id, params in panel_params.items():
 			L, R, err = self.__make_panel(id, params[0], params[1], root)
 			if L and R:
 				self.panels[id] = (L, R)
+				self.panel_list.append(L)
+				self.panel_list.append(R)
 			else:
 				errors += err
 
@@ -161,7 +164,7 @@ class Model_6DoF:
 
 	def __make_hull(self, path_hull, path_aero_coeffs_root):
 		try:
-			vol_area_data = VolumeAreaData(path_hull)
+			vol_area_data = load_volume_area_data(path_hull)
 		except Exception as e:
 			print(f'ERROR: failed to load/interpolate hull volume area data - {e}')
 			return 1
@@ -184,7 +187,7 @@ class Model_6DoF:
 
 	def __make_wing_roots(self, path_wing_root, path_aero_coeffs_root):
 		try:
-			vol_area_data = VolumeAreaData(path_wing_root)
+			vol_area_data = load_volume_area_data(path_wing_root)
 		except Exception as e:
 			print(f'ERROR: failed to load/interpolate wing root volume area data - {e}')
 			return 1
@@ -207,28 +210,22 @@ class Model_6DoF:
 		self.propulsor = Propulsor(self, thrust_torque_coeffs)
 		return 0
 
-	def __calc_query(self):
-		z = self.body_to_world(-self.r_CM)[2]
-		pitch = self.Phi[1]*180/pi
-		roll = self.Phi[0]*180/pi
-		self.query = array([z, pitch, roll])
-
 	def calc_state_dot(self):
-		F = zero3.copy()
-		M = zero3.copy()
-		self.__calc_rot_mats()
-		self.__calc_query()
+		(self.Cb0, self.C0b, self.Cb_ra, self.Cra_b, self.C0_ra, 
+   			self.r_ra_world) = calc_base_rot_mats(self.Phi, self.psi_ra, self.r_ra)
+		self.query = calc_base_query(self.C0b, self.r_CM, self.r, self.Phi)
 
-		for panels in self.panels.values():
-			for panel in panels:
-				panel.calc_force_moments()
-				F += panel.F_f
-				M += panel.M_f
+		F, M = zero3.copy(), zero3.copy()
+
+		for panel in self.panel_list:
+			panel.calc_force_moments()
+			F += panel.F
+			M += panel.M
 
 		for wr in self.wing_roots:
 			wr.calc_force_moments()
-			F += wr.F_f + wr.F_b
-			M += wr.M_f + wr.M_b
+			F += wr.F_b + wr.F_f
+			M += wr.M_b + wr.M_f
 		
 		self.hull.calc_force_moments()
 		F += self.hull.F_h + self.hull.F_b + self.hull.F_surf
@@ -236,66 +233,16 @@ class Model_6DoF:
 
 		self.propulsor.calc_force_moments()
 		self.propulsor.calc_state_dot()
-		F += self.propulsor.F_p
-		M += self.propulsor.M_p
+		F += self.propulsor.F
+		M += self.propulsor.M
 
-		F_g = self.Cb0 @ array([0, 0, self.m*self.g])
-		F += F_g
-
-		self.U_dot = F/self.m - cross(self.omega, self.U)
-		self.omega_dot = self.Ib_inv @ (M - cross(self.omega, self.Ib @ self.omega))
-		self.__calc_H()
-		self.Phi_dot = self.H @ self.Phi
-		self.r_dot = self.C0b @ self.U
-
-	def __calc_H(self):
-		phi = self.Phi[0]
-		theta = self.Phi[1]
-		cphi, ctheta = cos(phi), cos(theta)
-		sphi, stheta = sin(phi), sin(theta)
-		ttheta = stheta/ctheta
-		self.H = array([
-			[1, sphi*ttheta, cphi*ttheta],
-			[0, cphi, -sphi],
-			[0, sphi/ctheta, cphi/ctheta]
-		])
-
-	def __calc_rot_mats(self):
-		phi = self.Phi[0]
-		theta = self.Phi[1]
-		psi = self.Phi[2]
-		cpsi, ctheta, cphi, cpsi_ra = np.cos((psi, theta, phi, self.psi_ra))
-		spsi, stheta, sphi, spsi_ra = np.sin((psi, theta, phi, self.psi_ra))
-		C10 = array([
-			[cpsi, spsi, 0],
-			[-spsi, cpsi, 0],
-			[0, 0, 1]
-		]) 
-		C21 = array([
-			[ctheta, 0, -stheta],
-			[0, 1, 0],
-			[stheta, 0, ctheta]
-		])
-		Cb2 = array([
-			[1, 0, 0],
-			[0, cphi, sphi],
-			[0, -sphi, cphi]
-		])
-		self.Cb0 = Cb2 @ C21 @ C10
-		self.C0b = transpose(self.Cb0)
-		self.Cb_ra = np.array([
-			[cpsi_ra, -spsi_ra, 0],
-			[spsi_ra, cpsi_ra, 0],
-			[0, 0, 1]
-		])
-		self.Cra_b = transpose(self.Cb_ra)
-		self.C0_ra = self.C0b @ self.Cb_ra
-		self.r_ra_world = self.C0b @ self.r_ra
+		(self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot, 
+   			self.H) = calc_state_dot(F,M, self.Cb0, self.C0b, self.m, self.g, self.Ib, self.Ib_inv, self.U, self.omega, self.Phi)
 
 	def get_state(self):
-		return concatenate((self.U, self.omega, self.Phi, self.r, self.propulsor.get_state()))
+		return np.concatenate((self.U, self.omega, self.Phi, self.r, self.propulsor.get_state()))
 	def get_state_dot(self):
-		return concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot, self.propulsor.get_state_dot()))
+		return np.concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot, self.propulsor.get_state_dot()))
 	def set_state(self, state):
 		self.U = state[0:3]
 		self.omega = state[3:6]
@@ -304,17 +251,22 @@ class Model_6DoF:
 		self.propulsor.set_state(state[12:14])
 	
 	def get_input(self):
-		return array([self.psi_ra, self.propulsor.get_input()])
+		return np.array([self.psi_ra, self.propulsor.get_input()])
 	def set_input(self, input):
 		self.psi_ra = input[0]
 		self.propulsor.set_input(input[1])
 
-	def ra_to_body(self, r):
-		return self.r_ra + self.Cb_ra @ r
-	def ra_to_world(self, r):
-		return self.C0_ra @ r + self.r_ra_world + self.r
-	def body_to_world(self, r):
-		return self.C0b @ r + self.r
+@njit(cache=True)
+def calc_state_dot(F,M, Cb0,C0b, m,g, Ib,Ib_inv, U,omega,Phi):
+	F_g = Cb0 @ np.array([0, 0, m*g])
+	F += F_g
+
+	U_dot = F/m - cross(omega, U)
+	omega_dot = Ib_inv @ (M - cross(omega, Ib @ omega))
+	H = calc_H(Phi)
+	Phi_dot = H @ Phi
+	r_dot = C0b @ U
+	return U_dot, omega_dot, Phi_dot, r_dot, H
 
 def make_default():
 	return Model_6DoF('params/model_constants.txt','params/hull_data_regular_grid.npz','params/left_wing_root_data_regular_grid.npz',

@@ -14,9 +14,9 @@ def get_state_dots(t, states):
 	return model.get_state_dot()
 
 def get_inputs(t):
-	return zeros(2)
+	return np.zeros(2)
 
-t_span = (0, 0.5)
+t_span = (0, 10)
 states0 = model.get_state()
 
 print('INFO: solving ODE...')
@@ -29,7 +29,7 @@ else:
 	print(f'ERROR: solver failed - "{sol.message}" - elasped: {tok:.2f} seconds, exiting')
 	exit()
 
-PLOT = False
+PLOT = True
 
 if PLOT:
 	# Extract results and plot
@@ -41,7 +41,7 @@ if PLOT:
 	I = sol.y[12,:]
 	omega_p = sol.y[13,:]
 
-	inputs = zeros((len(sol.t),2))
+	inputs = np.zeros((len(sol.t),2))
 	for i,t in enumerate(sol.t):
 		inputs[i] = get_inputs(t)
 
