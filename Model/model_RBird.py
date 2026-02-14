@@ -29,6 +29,8 @@ class Model_6DoF:
 		# default inputs
 		self.psi_ra = 0
 		
+		self.__calc_rot_mats()
+
 		make_errors = 0
 		print('INFO: making panels...')
 		make_errors += self.__make_panels(path_aero_coeffs_root)
@@ -159,7 +161,7 @@ class Model_6DoF:
 
 	def __make_hull(self, path_hull, path_aero_coeffs_root):
 		try:
-			rg_interp = load_volume_area_data_interp(path_hull)
+			vol_area_data = VolumeAreaData(path_hull)
 		except Exception as e:
 			print(f'ERROR: failed to load/interpolate hull volume area data - {e}')
 			return 1
@@ -174,7 +176,7 @@ class Model_6DoF:
 			print(f'ERROR: failed to load surfaced aerodynamic coefficients - {e}')
 			return 1
 		try:
-			self.hull = Hull(self, rg_interp, hull_aero_coeffs, surf_aero_coeffs)
+			self.hull = Hull(self, vol_area_data, hull_aero_coeffs, surf_aero_coeffs)
 		except Exception as e:
 			print(f'ERROR: failed to make hull - {e}')
 			return 1
@@ -182,7 +184,7 @@ class Model_6DoF:
 
 	def __make_wing_roots(self, path_wing_root, path_aero_coeffs_root):
 		try:
-			rg_interp = load_volume_area_data_interp(path_wing_root)
+			vol_area_data = VolumeAreaData(path_wing_root)
 		except Exception as e:
 			print(f'ERROR: failed to load/interpolate wing root volume area data - {e}')
 			return 1
@@ -191,14 +193,14 @@ class Model_6DoF:
 		except Exception as e:
 			print(f'ERROR: failed to load wing root aerodynamic coefficients - {e}')
 			return 1
-		wr_L = WingRoot(self, rg_interp, aero_coeffs, True)
-		wr_R = WingRoot(self, rg_interp, aero_coeffs, False)
+		wr_L = WingRoot(self, vol_area_data, aero_coeffs, True)
+		wr_R = WingRoot(self, vol_area_data, aero_coeffs, False)
 		self.wing_roots = (wr_L, wr_R)
 		return 0
 
 	def __make_propulsor(self, path_propulsion):
 		try:
-			thrust_torque_coeffs = load_propulsor_data(path_propulsion)
+			thrust_torque_coeffs = load_thrust_torque_coeffs(path_propulsion)
 		except Exception as e:
 			print(f'ERROR: failed to load propulsor data - {e}')
 			return 1
@@ -207,8 +209,8 @@ class Model_6DoF:
 
 	def __calc_query(self):
 		z = self.body_to_world(-self.r_CM)[2]
-		pitch = rad2deg(self.Phi[1])
-		roll = rad2deg(self.Phi[0])
+		pitch = self.Phi[1]*180/pi
+		roll = self.Phi[0]*180/pi
 		self.query = array([z, pitch, roll])
 
 	def calc_state_dot(self):
@@ -249,39 +251,46 @@ class Model_6DoF:
 	def __calc_H(self):
 		phi = self.Phi[0]
 		theta = self.Phi[1]
+		cphi, ctheta = cos(phi), cos(theta)
+		sphi, stheta = sin(phi), sin(theta)
+		ttheta = stheta/ctheta
 		self.H = array([
-			[1, sin(phi)*tan(theta), cos(phi)*tan(theta)],
-			[0, cos(phi), -sin(phi)],
-			[0, sin(phi)/cos(theta), cos(phi)/cos(theta)]
+			[1, sphi*ttheta, cphi*ttheta],
+			[0, cphi, -sphi],
+			[0, sphi/ctheta, cphi/ctheta]
 		])
 
 	def __calc_rot_mats(self):
 		phi = self.Phi[0]
 		theta = self.Phi[1]
 		psi = self.Phi[2]
+		cpsi, ctheta, cphi, cpsi_ra = np.cos((psi, theta, phi, self.psi_ra))
+		spsi, stheta, sphi, spsi_ra = np.sin((psi, theta, phi, self.psi_ra))
 		C10 = array([
-			[cos(psi), sin(psi), 0],
-			[-sin(psi), cos(psi), 0],
+			[cpsi, spsi, 0],
+			[-spsi, cpsi, 0],
 			[0, 0, 1]
 		]) 
 		C21 = array([
-			[cos(theta), 0, -sin(theta)],
+			[ctheta, 0, -stheta],
 			[0, 1, 0],
-			[sin(theta), 0, cos(theta)]
+			[stheta, 0, ctheta]
 		])
 		Cb2 = array([
 			[1, 0, 0],
-			[0, cos(phi), sin(phi)],
-			[0, -sin(phi), cos(phi)]
+			[0, cphi, sphi],
+			[0, -sphi, cphi]
 		])
 		self.Cb0 = Cb2 @ C21 @ C10
 		self.C0b = transpose(self.Cb0)
 		self.Cb_ra = np.array([
-			[cos(self.psi_ra), -sin(self.psi_ra), 0],
-			[sin(self.psi_ra), cos(self.psi_ra), 0],
+			[cpsi_ra, -spsi_ra, 0],
+			[spsi_ra, cpsi_ra, 0],
 			[0, 0, 1]
 		])
 		self.Cra_b = transpose(self.Cb_ra)
+		self.C0_ra = self.C0b @ self.Cb_ra
+		self.r_ra_world = self.C0b @ self.r_ra
 
 	def get_state(self):
 		return concatenate((self.U, self.omega, self.Phi, self.r, self.propulsor.get_state()))
@@ -303,7 +312,7 @@ class Model_6DoF:
 	def ra_to_body(self, r):
 		return self.r_ra + self.Cb_ra @ r
 	def ra_to_world(self, r):
-		return self.C0b @ self.ra_to_body(r) + self.r
+		return self.C0_ra @ r + self.r_ra_world + self.r
 	def body_to_world(self, r):
 		return self.C0b @ r + self.r
 
@@ -313,6 +322,16 @@ def make_default():
 
 def main():
 	model = make_default()
+	# with cProfile.Profile() as make_profile:
+	# 	model = make_default()
+	with cProfile.Profile() as state_dot_profile:
+		model.calc_state_dot()
 	print(model.hull.z0)
+	# results = pstats.Stats(make_profile)
+	# results.sort_stats(pstats.SortKey.TIME)
+	# results.print_stats()
+	# results.dump_stats('make_model.prof')
+	results = pstats.Stats(state_dot_profile)
+	results.dump_stats('calc_state_dot.prof')
 
 if __name__ == '__main__': main()

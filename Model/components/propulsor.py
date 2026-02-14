@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 from components.utils import *
 
 class Propulsor:
-	def __init__(self, model: 'Model_6DoF', thrust_torque_coeffs):
+	def __init__(self, model: 'Model_6DoF', thrust_torque_coeffs: Periodic1D):
 		self.model = model
 
 		self.d = self.model.get_const('d',True)
@@ -31,11 +31,7 @@ class Propulsor:
 		self.b = self.Kt * I0 / (RPM0/60*2*pi)
 		self.Ke = 60 / (2*pi*KV)
 
-		Beta = thrust_torque_coeffs[:,0]
-		CT = thrust_torque_coeffs[:,1]
-		CQ = thrust_torque_coeffs[:,2]
-		self.CT = lambda beta: interp(beta, Beta, CT)
-		self.CQ = lambda beta: interp(beta, Beta, CQ)
+		self.thrust_torque_coeffs = thrust_torque_coeffs
 
 		# default states
 		self.I = 0
@@ -73,14 +69,15 @@ class Propulsor:
 		if Vr2 < 1e-12:
 			self.T, self.Q, self.F_p, self.M_p = 0, 0, zero3, zero3
 		else:
-			self.beta = arctan2(self.VA, self.Vrot)
+			self.beta = atan2(self.VA, self.Vrot)
 			z_d_2_world = self.model.ra_to_world(self.r_d_2)[2]
 			z_d_1_world = self.model.ra_to_world(self.r_d_1)[2]
 			self.fp = z_d_2_world / (z_d_2_world - z_d_1_world)
 			self.fp = clip(self.fp, 0, 1)
 			rho = self.model.rho_surf + (self.model.rho - self.model.rho_surf)*self.fp
 			QA = 1/2*rho*Vr2*(pi/4*self.d**2)
-			self.T = QA*self.CT(self.beta)
-			self.Q = QA*self.CT(self.beta)*self.d
+			CT_CQ = self.thrust_torque_coeffs.query(self.beta)
+			self.T = QA*CT_CQ[0]
+			self.Q = QA*CT_CQ[1]
 			self.F_p = self.model.Cb_ra @ array([self.eta_T*self.T, 0, 0])
 			self.M_p = cross(self.model.ra_to_body(self.r_prop), self.F_p)
