@@ -3,7 +3,7 @@ import numpy as np
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
 	from model_RBird import Model_6DoF
-from components.utils import *
+from utils.utils import *
 
 class WingRoot:
 	def __init__(self, model: 'Model_6DoF', vol_area_data, aero_coeffs, left):

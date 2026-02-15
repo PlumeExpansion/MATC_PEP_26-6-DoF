@@ -1,6 +1,6 @@
 import numpy as np
 
-from components.utils import *
+from utils.utils import *
 from components.panel import Panel
 from components.hull import Hull
 from components.propulsor import Propulsor
@@ -129,16 +129,14 @@ class Model_6DoF:
 			'rs': ('rsr', 'rvs'),
 		}
 
-		self.panels: dict[str, tuple[Panel, Panel]] = {}
-		self.panel_list: list[Panel] = []
+		self.panels: dict[str, Panel] = {}
 		errors = 0
 
 		for id, params in panel_params.items():
 			L, R, err = self.__make_panel(id, params[0], params[1], root)
 			if L and R:
-				self.panels[id] = (L, R)
-				self.panel_list.append(L)
-				self.panel_list.append(R)
+				self.panels[L.id] = L
+				self.panels[R.id] = R
 			else:
 				errors += err
 
@@ -158,8 +156,8 @@ class Model_6DoF:
 		r_TE_2 = self.get_const('r_TE_'+id_2)
 		r_list = [r - self.r_CM for r in [r_LE_1,r_LE_2,r_TE_1,r_TE_2]]
 
-		panel_left = Panel(self, id, r_list, aero_coeffs, rear)
-		panel_right = Panel(self, id, [flipY @ r for r in r_list], aero_coeffs, rear)
+		panel_left = Panel(self, id+'L', r_list, aero_coeffs, rear)
+		panel_right = Panel(self, id+'R', [flipY @ r for r in r_list], aero_coeffs, rear)
 		return panel_left, panel_right, 0
 
 	def __make_hull(self, path_hull, path_aero_coeffs_root):
@@ -217,7 +215,7 @@ class Model_6DoF:
 
 		F, M = zero3.copy(), zero3.copy()
 
-		for panel in self.panel_list:
+		for panel in self.panels.values():
 			panel.calc_force_moments()
 			F += panel.F
 			M += panel.M
@@ -273,6 +271,9 @@ def make_default():
 			'params/sample aero coeffs/','params/4 quad prop data/thrust torque coeffs/B4-70-14.txt')
 
 def main():
+	import cProfile
+	import pstats
+
 	model = make_default()
 	# with cProfile.Profile() as make_profile:
 	# 	model = make_default()

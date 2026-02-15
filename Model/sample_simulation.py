@@ -2,7 +2,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 import time
 
-from components.utils import *
+from utils.utils import *
 import model_RBird
 
 model = model_RBird.make_default()

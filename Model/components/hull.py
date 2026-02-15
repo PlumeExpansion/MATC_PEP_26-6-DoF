@@ -4,7 +4,7 @@ from scipy.optimize import root_scalar
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
 	from model_RBird import Model_6DoF
-from components.utils import *
+from utils.utils import *
 
 class Hull:
 	def __init__(self, model: 'Model_6DoF', vol_area_data, hull_aero_coeffs, surf_aero_coeffs):

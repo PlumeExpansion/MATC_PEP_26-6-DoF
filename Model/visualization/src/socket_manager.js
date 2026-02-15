@@ -6,6 +6,7 @@ export class SocketManager {
 	}
 
 	connect(url) {
+		if (this.socket != null) return;
 		this.socket = new WebSocket(url);
 		this.onStatusChange('Connecting...');
 
@@ -21,11 +22,13 @@ export class SocketManager {
 
 		this.socket.addEventListener('close', () => {
 			console.log('INFO: socket disconnected');
+			this.socket = null;
 			this.onStatusChange('Disconnected');
 		})
 
 		this.socket.addEventListener('error', err => {
 			console.error('ERROR: socket error', err);
+			this.socket = null;
 			this.onStatusChange('Error');
 		})
 	}

@@ -3,7 +3,7 @@ import numpy as np
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
 	from model_RBird import Model_6DoF
-from components.utils import *
+from utils.utils import *
 
 class Propulsor:
 	def __init__(self, model: 'Model_6DoF', thrust_torque_coeffs):
