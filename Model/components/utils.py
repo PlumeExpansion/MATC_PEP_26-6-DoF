@@ -51,8 +51,7 @@ def cross(a, b):
 	])
 
 @njit(cache=True)
-def calc_lift_drag(U,omega,r_b_frame,C_loc_b, aero_coeffs, rho,A):
-	C_b_loc = np.transpose(C_loc_b)
+def calc_lift_drag(U,omega,r_b_frame,C_loc_b,Cb_loc, aero_coeffs, rho,A):
 	U_local = U + cross(omega, r_b_frame)
 	U_local_loc_frame = C_loc_b @ U_local
 	U_mag = mag(U_local)
@@ -72,7 +71,7 @@ def calc_lift_drag(U,omega,r_b_frame,C_loc_b, aero_coeffs, rho,A):
 	Q = 1/2*rho*U_mag**2
 	L = Q*CL*A
 	D = Q*CD*A
-	F = C_b_loc @ C_loc_stab @ np.array([-D, 0, -L])
+	F = Cb_loc @ C_loc_stab @ np.array([-D, 0, -L])
 	M = cross(r_b_frame, F)
 	return U_mag, alpha, beta, C_loc_stab, L, D, F, M
 

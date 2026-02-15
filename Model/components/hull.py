@@ -32,11 +32,11 @@ class Hull:
 		# hull lift & drag force moment
 		(self.U_mag, self.alpha, self.beta, 
    			self.Cbw, self.L_h, self.D_h, self.F_h, self.M_h) = calc_lift_drag(self.model.U, self.model.omega, self.area_center,
-																eye3, self.hull_aero_coeffs, self.model.rho, self.area)
+																eye3,eye3, self.hull_aero_coeffs, self.model.rho, self.area)
 		# surfaced lift & drag force moment
 		(self.U_mag_surf, self.alpha_surf, self.beta_surf, self.Cbw_surf, 
    			self.L_surf, self.D_surf, self.F_surf, self.M_surf) = calc_lift_drag(self.model.U, self.model.omega, self.r_surf,
-																eye3, self.surf_aero_coeffs, self.model.rho_surf, self.area_surf)
+																eye3,eye3, self.surf_aero_coeffs, self.model.rho_surf, self.area_surf)
 
 @njit(cache=True)
 def calc_query(query):

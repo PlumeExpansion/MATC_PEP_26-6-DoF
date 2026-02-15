@@ -23,7 +23,7 @@ class WingRoot:
 		# lift & drag force moment
 		(self.U_mag, self.alpha, self.beta, 
    			self.Cbw, self.L, self.D, self.F_f, self.M_f) = calc_lift_drag(self.model.U, self.model.omega, self.area_center,
-																eye3, self.aero_coeffs, self.model.rho, self.area)
+																eye3,eye3, self.aero_coeffs, self.model.rho, self.area)
 
 @njit(cache=True)
 def calc_query(query, left):
