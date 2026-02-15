@@ -1,14 +1,9 @@
 import numpy as np
 import numpy.linalg as LA
-import cProfile
-import pstats
-from scipy.interpolate import RegularGridInterpolator
-import math
 from numba import njit
 from math import (pi, cos, sin, atan2, asin, acos, sqrt)
-# from numpy import (transpose, roots, array, eye, ones, concatenate)
 
-from components.param_utils import *
+from utils.param_utils import *
 
 xHat = np.array([1, 0 ,0])
 yHat = np.array([0, 1 ,0])
@@ -26,7 +21,7 @@ projYZ = np.array([
 
 flipY = np.array([
 	[1, 0, 0],
-	[0, 1, 0],
+	[0, -1, 0],
 	[0, 0, 1]
 ])
 
