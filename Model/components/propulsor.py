@@ -24,7 +24,7 @@ class Propulsor:
 		self.L = self.model.get_const('L',True)
 		self.J = self.model.get_const('J',True)
 
-		self.r_prop = self.model.get_const('r_prop')
+		self.r_prop = self.model.get_const('r_prop_ra')
 		self.r_d_1 = self.r_prop - self.d/2*zHat
 		self.r_d_2 = self.r_prop + self.d/2*zHat
 

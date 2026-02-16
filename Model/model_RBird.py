@@ -65,10 +65,10 @@ class Model_6DoF:
 			print(f'WARNING: {len(unaccessed)} unaccessed constant(s) defined - {list(unaccessed)}')
 		
 		if len(to_fix) > 0:
-			print(f'INFO: {len(to_fix)} constant(s) to fix - {to_fix}', end='')
+			print(f'INFO: {len(to_fix)} constant(s) to fix - {to_fix}')
 
 		if self.init_errors > 0:
-			print(f'INFO: {self.init_errors} initialization error(s)', end='')
+			print(f'INFO: {self.init_errors} initialization error(s)')
 		else:
 			print(f'INFO: model intialized succesfully')
 		
@@ -99,8 +99,8 @@ class Model_6DoF:
 
 		self.Ib_inv = LA.inv(self.Ib).astype(np.float64)
 		
-		self.r_CM = self.get_const('r_CM')
-		self.r_ra = self.get_const('r_ra')
+		self.r_CM = self.get_const('r_CM_kt')
+		self.r_ra = self.get_const('r_ra_kt') - self.r_CM
 
 	def get_const(self, key, pos_check=False):
 		if key in self.constants:
@@ -150,11 +150,18 @@ class Model_6DoF:
 			return None, None, 1
 		
 		rear = id.startswith('r')
-		r_LE_1 = self.get_const('r_LE_'+id_1)
-		r_LE_2 = self.get_const('r_LE_'+id_2)
-		r_TE_1 = self.get_const('r_TE_'+id_1)
-		r_TE_2 = self.get_const('r_TE_'+id_2)
-		r_list = [r - self.r_CM for r in [r_LE_1,r_LE_2,r_TE_1,r_TE_2]]
+		if rear:
+			r_LE_1 = self.get_const('r_LE_'+id_1+'_ra')
+			r_LE_2 = self.get_const('r_LE_'+id_2+'_ra')
+			r_TE_1 = self.get_const('r_TE_'+id_1+'_ra')
+			r_TE_2 = self.get_const('r_TE_'+id_2+'_ra')
+			r_list = [r_LE_1,r_LE_2,r_TE_1,r_TE_2]
+		else:
+			r_LE_1 = self.get_const('r_LE_'+id_1+'_kt') - self.r_CM
+			r_LE_2 = self.get_const('r_LE_'+id_2+'_kt') - self.r_CM
+			r_TE_1 = self.get_const('r_TE_'+id_1+'_kt') - self.r_CM
+			r_TE_2 = self.get_const('r_TE_'+id_2+'_kt') - self.r_CM
+			r_list = [r_LE_1,r_LE_2,r_TE_1,r_TE_2]
 
 		panel_left = Panel(self, id+'L', r_list, aero_coeffs, rear)
 		panel_right = Panel(self, id+'R', [flipY @ r for r in r_list], aero_coeffs, rear)

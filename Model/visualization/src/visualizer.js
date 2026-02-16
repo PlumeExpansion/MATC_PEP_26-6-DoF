@@ -174,7 +174,7 @@ function telem(msg) {
 
 	raGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(states.Cb_ra));
 
-	for (const id in msg['panels']) panels.get(id).syncTelem(msg['panels'][id], states.Cb_ra, constants.r_ra);
+	for (const id in msg['panels']) panels.get(id).syncTelem(msg['panels'][id], states.Cb_ra);
 	for (const id in msg['wing_roots']) wingRoots.get(id).syncTelem(msg['wing_roots'][id]);
 	hull.syncTelem(msg['hull']);
 	propulsor.syncTelem(msg['propulsor'], states.Cb_ra);

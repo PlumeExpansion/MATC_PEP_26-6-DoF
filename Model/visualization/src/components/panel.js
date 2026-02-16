@@ -7,13 +7,12 @@ export class Panel extends THREE.Group {
 		super();
 		this.panelId = id;
 		this.config = config;
-		this.r_qc_fC_body = new THREE.Vector3();
+		this.r_qc_fC = new THREE.Vector3();
 		this.Cbw = new THREE.Matrix3();
 		this.r_LE_1 = new THREE.Vector3();
 		this.r_LE_2 = new THREE.Vector3();
 		this.r_TE_1 = new THREE.Vector3();
 		this.r_TE_2 = new THREE.Vector3();
-		this.r_qc_fC_ra = new THREE.Vector3();
 
 		this.F = new THREE.Vector3();
 		this.M = new THREE.Vector3();
@@ -47,28 +46,36 @@ export class Panel extends THREE.Group {
 		this.norm = new THREE.Vector3().subVectors(this.r_LE_1, this.r_LE_2)
 			.cross(new THREE.Vector3().copy(this.r_TE_2).sub(this.r_LE_2)).multiplyScalar(this.panelId.includes('L')? -1 : 1).normalize();
 	}
-	syncTelem(telem, Cb_ra, r_ra) {
+	syncTelem(telem,Cb_ra) {
 		this.alpha = telem['alpha'];
 		this.beta = telem['beta'];
 		this.f = telem['f'];
 		this.one_lower = telem['one_lower'];
-		this.r_qc_fC_body.fromArray(telem['r_qc_fC_body']);
+		this.r_qc_fC.fromArray(telem['r_qc_fC']);
 		this.L = telem['L'];
 		this.D = telem['D'];
 		this.F.fromArray(telem['F']);
 		this.M.fromArray(telem['M']);
 		this.Cbw.fromArray(telem['Cbw']).transpose();
-		this.r_qc_fC_ra.copy(this.r_qc_fC_body).sub(r_ra).applyMatrix3(Cb_ra.clone().transpose())
 
-		this.r_LE_f = new THREE.Vector3().copy(this.r_LE_1).multiplyScalar(this.f).addScaledVector(this.r_LE_2, 1-this.f);
-		this.r_TE_f = new THREE.Vector3().copy(this.r_TE_1).multiplyScalar(this.f).addScaledVector(this.r_TE_2, 1-this.f);
+		if (this.one_lower) {
+			this.r_LE_f = new THREE.Vector3().copy(this.r_LE_2).multiplyScalar(this.f).addScaledVector(this.r_LE_1, 1-this.f);
+			this.r_TE_f = new THREE.Vector3().copy(this.r_TE_2).multiplyScalar(this.f).addScaledVector(this.r_TE_1, 1-this.f);
+			this.#setVerts(this.surfVerts, this.r_LE_f, this.r_TE_f, this.r_TE_2, this.r_LE_2);
+			this.#setVerts(this.subVerts, this.r_LE_1, this.r_TE_1, this.r_TE_f, this.r_LE_f);
+		} else {
+			this.r_LE_f = new THREE.Vector3().copy(this.r_LE_1).multiplyScalar(this.f).addScaledVector(this.r_LE_2, 1-this.f);
+			this.r_TE_f = new THREE.Vector3().copy(this.r_TE_1).multiplyScalar(this.f).addScaledVector(this.r_TE_2, 1-this.f);
+			this.#setVerts(this.subVerts, this.r_LE_f, this.r_TE_f, this.r_TE_2, this.r_LE_2);
+			this.#setVerts(this.surfVerts, this.r_LE_1, this.r_TE_1, this.r_TE_f, this.r_LE_f);
+		}
 
 		this.waterAxes.setRotMat(this.Cbw);
-		this.waterAxes.position.copy(this.rear? this.r_qc_fC_ra : this.r_qc_fC_body);
+		this.waterAxes.position.copy(this.r_qc_fC);
 		
-		this.submergence.position.copy(this.rear? this.r_qc_fC_ra : this.r_qc_fC_body);
-		this.force.position.copy(this.rear? this.r_qc_fC_ra : this.r_qc_fC_body);
-		this.moment.position.copy(this.rear? this.r_qc_fC_ra : this.r_qc_fC_body);
+		this.submergence.position.copy(this.r_qc_fC);
+		this.force.position.copy(this.r_qc_fC);
+		this.moment.position.copy(this.r_qc_fC);
 
 		this.submergence.setPoint(this.norm, this.f*this.config.submergenceScale);
 		if (this.rear) {
@@ -79,17 +86,6 @@ export class Panel extends THREE.Group {
 			this.moment.setPoint(this.M.clone());
 		}
 
-		this.#setVerts(this.subVerts, this.r_LE_f, this.r_TE_f, this.r_TE_2, this.r_LE_2);
-		this.#setVerts(this.surfVerts, this.r_LE_1, this.r_TE_1, this.r_TE_f, this.r_LE_f);
-
-		if (this.one_lower) {
-			this.subMat.color.set(this.config.surfColor);
-			this.surfMat.color.set(this.config.subColor);
-		} else {
-			this.subMat.color.set(this.config.subColor);
-			this.surfMat.color.set(this.config.surfColor);
-		}
-
 		this.subGeom.attributes.position.needsUpdate = true;
 		this.surfGeom.attributes.position.needsUpdate = true;
 		this.subGeom.computeBoundingSphere();
@@ -97,6 +93,8 @@ export class Panel extends THREE.Group {
 	}
 	syncVisuals() {
 		this.waterAxes.setScale(this.config.foilAxesScale);
+		this.subMat.color.set(this.config.subColor);
+		this.surfMat.color.set(this.config.surfColor);
 
 		this.force.setScale(this.config.forceScale);
 		this.moment.setScale(this.config.momentScale);

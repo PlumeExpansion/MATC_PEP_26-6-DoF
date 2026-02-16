@@ -15,7 +15,7 @@ class Hull:
 		self.surf_aero_coeffs = surf_aero_coeffs
 
 		self.area_surf = self.model.get_const('A_surf',True)
-		self.r_surf = self.model.get_const('r_surf')
+		self.r_surf = self.model.get_const('r_surf_kt') - self.model.r_CM
 
 		disp0 = self.model.m / self.model.rho
 		sol = root_scalar(lambda z: query_volume_area(vol_area_data, np.array([z,0,0]))[0] - disp0, bracket=[0,0.2], method='brentq')

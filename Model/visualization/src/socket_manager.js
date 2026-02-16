@@ -16,8 +16,12 @@ export class SocketManager {
 		});
 
 		this.socket.addEventListener('message', event => {
-			const data = JSON.parse(event.data);
-			this.onMessageReceived(data);
+			try {
+				const data = JSON.parse(event.data);
+				this.onMessageReceived(data);
+			} catch (error) {
+				console.error('ERROR: failed to parse data', event.data)
+			}
 		})
 
 		this.socket.addEventListener('close', () => {

@@ -53,7 +53,6 @@ def calc_rot_mats(rear, Cf_ref, Cra_b):
 	Cref_f = np.transpose(Cf_ref)
 	return Cf_ref, Cref_f
 
-# TODO: fix submergence, one lower does not swap properly
 @njit(cache=True)
 def calc_submergence(rear, r_qc_1,r_qc_2, Cb_ra,C0_ra, r_ra,r_ra_world, r_world, c1,c2,s, C0b):
 	if rear:

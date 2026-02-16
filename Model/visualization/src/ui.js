@@ -163,6 +163,7 @@ export class UI {
 	updateSimulationStatus(running) {
 		this.simStates.status = running? 'Running' : 'Paused';
 		this.runBtn.title = running? 'Pause': 'Resume';
+		this.runBtn.disabled = false;
 		this.#disableControls(running);
 	}
 	#disableControls(disabled) {

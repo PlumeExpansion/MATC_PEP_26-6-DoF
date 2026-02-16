@@ -20,7 +20,6 @@ export class Propulsor extends THREE.Group {
 	}
 	build(data) {
 		this.r_prop.fromArray(data['r_prop']);
-		console.log(this.r_prop)
 
 		this.waterAxes.position.copy(this.r_prop);
 		this.force.position.copy(this.r_prop);

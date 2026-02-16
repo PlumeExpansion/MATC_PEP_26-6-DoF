@@ -46,6 +46,7 @@ class Simulation:
 	def reset(self):
 		self.pause()
 		self.model.set_state(np.zeros(14))
+		self.system.set_initial_value(self.model.get_state())
 		self.model.set_input(np.zeros(2))
 		self.model.calc_state_dot()
 		self.set_telemetry()
@@ -119,7 +120,7 @@ class Simulation:
 			panel_telem['beta'] = panel.beta
 			panel_telem['f'] = panel.f
 			panel_telem['one_lower'] = panel.one_lower
-			panel_telem['r_qc_fC_body'] = panel.r_qc_fC_body.tolist()
+			panel_telem['r_qc_fC'] = panel.r_qc_fC.tolist()
 			panel_telem['L'] = panel.L
 			panel_telem['D'] = panel.D
 			panel_telem['F'] = panel.F.tolist()
@@ -233,6 +234,7 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'psi_ra': sim.model.psi_ra = value*np.pi/180
 					else: print(f'WARNING: unknown state set request - {state} = {value}')
 
+					sim.system.set_initial_value(sim.model.get_state(), sim.system.t)
 					sim.model.calc_state_dot()
 					sim.set_telemetry()
 					for socket in sockets:
@@ -280,7 +282,9 @@ async def simulation_loop():
 			# step and transmit telemetry
 			if sim.is_running() and sim.get_dt() > 1/step_rate:
 				sim.step()
-
+				
+				sim.model.calc_state_dot()
+				sim.set_telemetry()
 				for socket in sockets:
 					await socket.send(sim.telem)
 			await asyncio.sleep(1/loop_rate)
