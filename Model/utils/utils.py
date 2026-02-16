@@ -46,33 +46,38 @@ def cross(a, b):
 	])
 
 @njit(cache=True)
-def calc_lift_drag(U,omega,r_b_frame,C_loc_b,Cb_loc, aero_coeffs, rho,A):
+def stab_frame(U,omega,r_b_frame,C_loc_b):
 	U_local = U + cross(omega, r_b_frame)
 	U_local_loc_frame = C_loc_b @ U_local
 	U_mag = mag(U_local)
 	if U_mag < 1e-6:
-		return U_mag, 0, 0, eye3, 0, 0, np.zeros(3), np.zeros(3)
+		return U_mag, U_local_loc_frame, 0.0, 0.0, np.eye(3)
 	alpha = atan2(U_local_loc_frame[2], U_local[0])
 	beta = asin(U_local_loc_frame[1] / U_mag)
 	ca, sa = cos(alpha), sin(alpha)
 	cb, sb = cos(beta), sin(beta)
 	C_loc_stab = np.array([
 		[ca*cb, -ca*sb, -sa],
-		[sb, cb, 0],
+		[sb, cb, 0.0],
 		[sa*cb, -sa*sb, ca]
 	])
+	return U_mag, U_local_loc_frame, alpha, beta, C_loc_stab
 
+@njit(cache=True)
+def calc_lift_drag(U,omega,r_b_frame,C_loc_b,Cb_loc, aero_coeffs, rho,A):
+	U_mag, _, alpha, beta, C_loc_stab = stab_frame(U, omega, r_b_frame, C_loc_b)
 	CL, CD = query_periodic_1D(aero_coeffs, alpha*180/pi)
 	Q = 1/2*rho*U_mag**2
 	L = Q*CL*A
 	D = Q*CD*A
-	F = Cb_loc @ C_loc_stab @ np.array([-D, 0, -L])
+	Cb_stab = Cb_loc @ C_loc_stab
+	F = Cb_stab @ np.array([-D, 0.0, -L])
 	M = cross(r_b_frame, F)
-	return U_mag, alpha, beta, C_loc_stab, L, D, F, M
+	return U_mag, alpha, beta, Cb_stab, C_loc_stab, L, D, F, M
 
 @njit(cache=True)
 def calc_buoyancy(vol, rho,g, Cb0,r_body):
-	F = Cb0 @ np.array([0, 0, -rho*vol*g])
+	F = Cb0 @ np.array([0.0, 0.0, -rho*vol*g])
 	M = cross(r_body, F)
 	return F, M
 
@@ -127,7 +132,7 @@ def calc_H(Phi):
 	sphi, stheta = sin(phi), sin(theta)
 	ttheta = stheta/ctheta
 	return np.array([
-		[1, sphi*ttheta, cphi*ttheta],
-		[0, cphi, -sphi],
-		[0, sphi/ctheta, cphi/ctheta]
+		[1.0, sphi*ttheta, cphi*ttheta],
+		[0.0, cphi, -sphi],
+		[0.0, sphi/ctheta, cphi/ctheta]
 	])

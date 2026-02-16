@@ -95,9 +95,9 @@ class Model_6DoF:
 			[Ixx, Ixy, Ixz],
 			[Ixy, Iyy, Iyz],
 			[Ixz, Iyz, Izz]
-		])
+		]).astype(np.float64)
 
-		self.Ib_inv = LA.inv(self.Ib)
+		self.Ib_inv = LA.inv(self.Ib).astype(np.float64)
 		
 		self.r_CM = self.get_const('r_CM')
 		self.r_ra = self.get_const('r_ra')
@@ -256,13 +256,18 @@ class Model_6DoF:
 
 @njit(cache=True)
 def calc_state_dot(F,M, Cb0,C0b, m,g, Ib,Ib_inv, U,omega,Phi):
-	F_g = Cb0 @ np.array([0, 0, m*g])
+	F = F.astype(np.float64)
+	M = M.astype(np.float64)
+	U = U.astype(np.float64)
+	omega = omega.astype(np.float64)
+
+	F_g = Cb0 @ np.array([0.0, 0.0, m*g])
 	F += F_g
 
 	U_dot = F/m - cross(omega, U)
 	omega_dot = Ib_inv @ (M - cross(omega, Ib @ omega))
 	H = calc_H(Phi)
-	Phi_dot = H @ Phi
+	Phi_dot = H @ Phi.astype(np.float64)
 	r_dot = C0b @ U
 	return U_dot, omega_dot, Phi_dot, r_dot, H
 

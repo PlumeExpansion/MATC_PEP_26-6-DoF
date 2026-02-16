@@ -22,7 +22,7 @@ class WingRoot:
 		self.F_b, self.M_b = calc_buoyancy(self.vol, self.model.rho, self.model.g, self.model.Cb0, self.vol_center)
 		# lift & drag force moment
 		(self.U_mag, self.alpha, self.beta, 
-   			self.Cbw, self.L, self.D, self.F_f, self.M_f) = calc_lift_drag(self.model.U, self.model.omega, self.area_center,
+   			_, self.Cbw, self.L, self.D, self.F_f, self.M_f) = calc_lift_drag(self.model.U, self.model.omega, self.area_center,
 																eye3,eye3, self.aero_coeffs, self.model.rho, self.area)
 
 @njit(cache=True)

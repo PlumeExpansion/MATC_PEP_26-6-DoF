@@ -43,6 +43,13 @@ class Simulation:
 	def is_running(self):
 		return self.__running
 
+	def reset(self):
+		self.pause()
+		self.model.set_state(np.zeros(14))
+		self.model.set_input(np.zeros(2))
+		self.model.calc_state_dot()
+		self.set_telemetry()
+
 	def step(self,dt: float=np.nan):
 		if self.__running:
 			if not np.isnan(dt):
@@ -117,7 +124,7 @@ class Simulation:
 			panel_telem['D'] = panel.D
 			panel_telem['F'] = panel.F.tolist()
 			panel_telem['M'] = panel.M.tolist()
-			panel_telem['Cbf'] = panel.Cbf.flatten().tolist()
+			panel_telem['Cbw'] = panel.Cbw.flatten().tolist()
 		
 		hull = self.model.hull
 		hull_telem = self.__telem['hull']
@@ -136,8 +143,8 @@ class Simulation:
 		hull_telem['Cbw'] = hull.Cbw.flatten().tolist()
 
 		surf_telem = hull_telem['surf']
-		surf_telem['alpha'] = hull.alpha
-		surf_telem['beta'] = hull.beta
+		surf_telem['alpha'] = hull.alpha_surf
+		surf_telem['beta'] = hull.beta_surf
 		surf_telem['L'] = hull.L_surf
 		surf_telem['D'] = hull.D_surf
 		surf_telem['F'] = hull.F_surf.tolist()
@@ -158,6 +165,7 @@ class Simulation:
 			wr_telem['M_f'] = wr.M_f.tolist()
 			wr_telem['F_b'] = wr.F_b.tolist()
 			wr_telem['M_b'] = wr.M_b.tolist()
+			wr_telem['Cbw'] = wr.Cbw.flatten().tolist()
 		
 		p = self.model.propulsor
 		p_telem = self.__telem['propulsor']
@@ -170,6 +178,7 @@ class Simulation:
 		p_telem['Q'] = p.Q
 		p_telem['F'] = p.F.tolist()
 		p_telem['M'] = p.M.tolist()
+		p_telem['Cra_w'] = p.Cra_w.flatten().tolist()
 		
 		self.__telem['U'] = self.model.U.tolist()
 		self.__telem['omega'] = self.model.omega.tolist()
@@ -177,7 +186,7 @@ class Simulation:
 		self.__telem['r'] = self.model.r.tolist()
 		self.__telem['psi_ra'] = self.model.psi_ra
 		self.__telem['C0b'] = self.model.C0b.flatten().tolist()
-		self.__telem['C0_ra'] = self.model.C0_ra.flatten().tolist()
+		self.__telem['Cb_ra'] = self.model.Cb_ra.flatten().tolist()
 
 		self.__telem['running'] = self.__running
 		self.telem = json.dumps(self.__telem)
@@ -212,7 +221,47 @@ async def handler(socket: websockets.ServerConnection):
 	try:
 		async for message in socket:
 			data = json.loads(message)
+			try:
+				dataType = data['type']
+				if dataType == 'set':
+					state, value = data['state'], data['value']
+					if state == 'U': sim.model.U = np.array([value['x'],value['y'],value['z']])
+					elif state == 'omega': sim.model.omega = np.array([value['x'],value['y'],value['z']])*np.pi/180
+					elif state == 'Phi': sim.model.Phi = np.array([value['x'],value['y'],value['z']])*np.pi/180
+					elif state == 'r': sim.model.r = np.array([value['x'],value['y'],value['z']/100])
+					elif state == 'epsilon': sim.model.propulsor.epsilon = value
+					elif state == 'psi_ra': sim.model.psi_ra = value*np.pi/180
+					else: print(f'WARNING: unknown state set request - {state} = {value}')
 
+					sim.model.calc_state_dot()
+					sim.set_telemetry()
+					for socket in sockets:
+						await socket.send(sim.telem)
+				elif dataType == 'sim':
+					if sim.is_running():
+						sim.pause()
+						print(f'INFO: pausing simulation')
+					else:
+						sim.resume()
+						print(f'INFO: resuming simulation')
+				elif dataType == 'step':
+					print(f'INFO: stepping simulation by {data['dt']} second(s)')
+					sim.step(data['dt'])
+
+					sim.model.calc_state_dot()
+					sim.set_telemetry()
+					for socket in sockets:
+						await socket.send(sim.telem)
+				elif dataType == 'reset':
+					print(f'INFO: resetting simulation')
+					sim.reset()
+					
+					for socket in sockets:
+						await socket.send(sim.telem)
+				else:
+					print(f'WARNING: unknown data received - {data}')
+			except Exception as e:
+				print(f'ERROR: corrupt data received "{data}" - {e}')
 	except websockets.ConnectionClosed:
 		pass
 	finally:

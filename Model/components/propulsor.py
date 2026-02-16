@@ -58,7 +58,9 @@ class Propulsor:
 		self.omega_dot = (self.Kt*self.I - self.b*self.omega - self.Q)/self.J
 
 	def calc_force_moments(self):
-		u_p = calc_U_p(self.model.U, self.model.omega, ra_to_body(self.r_prop, self.model.Cb_ra, self.model.r_ra), self.model.Cra_b)
+		_, U_p, _,_, self.Cra_w = stab_frame(self.model.U, self.model.omega, 
+									   ra_to_body(self.r_prop, self.model.Cb_ra, self.model.r_ra), self.model.Cra_b)
+		u_p = U_p[0]
 		self.w = self.w_f + (self.w_fs + self.w_f)*self.model.hull.area/self.model.hull.area0
 		self.VA = u_p*(1-self.w)
 		self.n = self.omega/(2*pi)
@@ -69,12 +71,6 @@ class Propulsor:
    			self.Q, self.F, self.M) = calc_thrust_torque(self.VA, self.Vrot, z_d_2_world, z_d_1_world,
 												  self.model.rho_surf, self.model.rho, self.d, self.thrust_torque_coeffs, self.eta_T,
 												  self.model.Cb_ra, self.r_prop)
-
-@njit(cache=True)
-def calc_U_p(U, omega, r_prop_body, Cra_b):
-	U_p = U + cross(omega, r_prop_body)
-	U_p_ra_frame = Cra_b @ U_p
-	return U_p_ra_frame[0]
 
 @njit(cache=True)
 def calc_thrust_torque(VA,Vrot, z_d_2_world, z_d_1_world, rho_surf,rho, d, thrust_torque_coeffs,eta_T, Cb_ra, r_prop_body):

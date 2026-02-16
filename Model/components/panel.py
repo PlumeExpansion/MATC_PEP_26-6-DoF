@@ -43,16 +43,17 @@ class Panel:
 														 self.model.r_ra, self.model.r_ra_world, self.model.r, self.c1, self.c2, 
 														 self.s, self.model.C0b)
 		(self.U_mag, self.alpha, self.beta, 
-   			self.Cfw, self.L, self.D, self.F, self.M) = calc_lift_drag(self.model.U, self.model.omega, self.r_qc_fC_body,
+   			self.Cbw, self.Cfw, self.L, self.D, self.F, self.M) = calc_lift_drag(self.model.U, self.model.omega, self.r_qc_fC_body,
 																self.Cfb, self.Cbf, self.aero_coeffs, self.model.rho, self.A)
 
 @njit(cache=True)
 def calc_rot_mats(rear, Cf_ref, Cra_b):
 	if rear:
 		Cf_ref = Cf_ref @ Cra_b
-		Cref_f = np.transpose(Cf_ref)
+	Cref_f = np.transpose(Cf_ref)
 	return Cf_ref, Cref_f
 
+# TODO: fix submergence, one lower does not swap properly
 @njit(cache=True)
 def calc_submergence(rear, r_qc_1,r_qc_2, Cb_ra,C0_ra, r_ra,r_ra_world, r_world, c1,c2,s, C0b):
 	if rear:
@@ -61,7 +62,7 @@ def calc_submergence(rear, r_qc_1,r_qc_2, Cb_ra,C0_ra, r_ra,r_ra_world, r_world,
 	else:
 		z_qc_1_world = body_to_world(r_qc_1, C0b, r_world)[2]
 		z_qc_2_world = body_to_world(r_qc_2, C0b, r_world)[2]
-	
+
 	one_lower = z_qc_1_world > z_qc_2_world
 	if one_lower:
 		temp_z = z_qc_1_world
