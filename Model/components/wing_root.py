@@ -17,7 +17,7 @@ class WingRoot:
 	def calc_force_moments(self):
 		(self.vol, self.area, self.vol_center, 
    			self.area_center) = process_volume_area(query_volume_area(self.vol_area_data, 
-																calc_query(self.model.query, self.left)), self.left)
+																calc_query(self.model.query, self.left), self.model.r_CM), self.left)
 		# buoyant force moment
 		self.F_b, self.M_b = calc_buoyancy(self.vol, self.model.rho, self.model.g, self.model.Cb0, self.vol_center)
 		# lift & drag force moment

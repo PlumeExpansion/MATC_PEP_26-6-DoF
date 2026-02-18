@@ -121,6 +121,7 @@ class Simulation:
 			panel_telem['f'] = panel.f
 			panel_telem['one_lower'] = panel.one_lower
 			panel_telem['r_qc_fC'] = panel.r_qc_fC.tolist()
+			panel_telem['U_mag'] = panel.U_mag
 			panel_telem['L'] = panel.L
 			panel_telem['D'] = panel.D
 			panel_telem['F'] = panel.F.tolist()
@@ -135,6 +136,7 @@ class Simulation:
 		hull_telem['vol'] = hull.vol
 		hull_telem['area_center'] = hull.area_center.tolist()
 		hull_telem['vol_center'] = hull.vol_center.tolist()
+		hull_telem['U_mag'] = hull.U_mag
 		hull_telem['L'] = hull.L_h
 		hull_telem['D'] = hull.D_h
 		hull_telem['F_h'] = hull.F_h.tolist()
@@ -146,6 +148,7 @@ class Simulation:
 		surf_telem = hull_telem['surf']
 		surf_telem['alpha'] = hull.alpha_surf
 		surf_telem['beta'] = hull.beta_surf
+		surf_telem['U_mag'] = hull.U_mag_surf
 		surf_telem['L'] = hull.L_surf
 		surf_telem['D'] = hull.D_surf
 		surf_telem['F'] = hull.F_surf.tolist()
@@ -160,6 +163,7 @@ class Simulation:
 			wr_telem['vol'] = wr.vol
 			wr_telem['area_center'] = wr.area_center.tolist()
 			wr_telem['vol_center'] = wr.vol_center.tolist()
+			wr_telem['U_mag'] = wr.U_mag
 			wr_telem['L'] = wr.L
 			wr_telem['D'] = wr.D
 			wr_telem['F_f'] = wr.F_f.tolist()
@@ -188,6 +192,7 @@ class Simulation:
 		self.__telem['psi_ra'] = self.model.psi_ra
 		self.__telem['C0b'] = self.model.C0b.flatten().tolist()
 		self.__telem['Cb_ra'] = self.model.Cb_ra.flatten().tolist()
+		self.__telem['query'] = self.model.query.tolist()
 
 		self.__telem['running'] = self.__running
 		self.telem = json.dumps(self.__telem)

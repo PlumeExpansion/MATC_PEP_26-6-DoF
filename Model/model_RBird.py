@@ -98,7 +98,7 @@ class Model_6DoF:
 		]).astype(np.float64)
 
 		self.Ib_inv = LA.inv(self.Ib).astype(np.float64)
-		
+
 		self.r_CM = self.get_const('r_CM_kt')
 		self.r_ra = self.get_const('r_ra_kt') - self.r_CM
 
@@ -274,7 +274,7 @@ def calc_state_dot(F,M, Cb0,C0b, m,g, Ib,Ib_inv, U,omega,Phi):
 	U_dot = F/m - cross(omega, U)
 	omega_dot = Ib_inv @ (M - cross(omega, Ib @ omega))
 	H = calc_H(Phi)
-	Phi_dot = H @ Phi.astype(np.float64)
+	Phi_dot = H @ omega
 	r_dot = C0b @ U
 	return U_dot, omega_dot, Phi_dot, r_dot, H
 

@@ -2,18 +2,26 @@ import { Pane } from 'tweakpane';
 
 export class UI {
 	constructor(callbacks = {}) {
-		this.pane = new Pane();
+		this.leftPane = new Pane({
+			container: document.getElementById('pane-left')
+		});
+
+		this.rightPane = new Pane({
+			container: document.getElementById('pane-right')
+		});
+
 		this.callbacks = callbacks;
 		this.socketParams = {
 			url: 'ws://localhost:8765',
 			status: 'Disconnected'
 		};
 		this.sceneConfig = {
+			stlOpacity: 0.7,
 			hullAxesScale: 0.5,
 			foilAxesScale: 0.25,
 			propAxesScale: 0.25,
-			forceScale: 0.5,
-			momentScale: 0.5,
+			forceScale: 0.001,
+			momentScale: 0.01,
 			submergenceScale: 0.5,
 			forceColor: '#007bff',
 			momentColor: '#ff00ff',
@@ -40,28 +48,71 @@ export class UI {
 			psi_ra: 0,
 			dt: 0.1
 		}
+		this.telem = {
+			raw: 'N/A'
+		}
+		this.telemFunc = function(k,v) {
+			if (Object.prototype.toString.call(v) === '[object Array]') {
+				// return JSON.stringify(b, this.telemFunc, 2)
+				if (k.startsWith('C')) {
+					v = v.map(val => parseFloat(val).toFixed(4));
+					let lst = [
+						v.slice(0,3),
+						v.slice(3,6),
+						v.slice(6,9),
+					]
+					return lst
+				}
+				else {
+					return '<'+v.map(val => parseFloat(val).toFixed(4)).join(', ')+'>'
+				}
+			} else if (Object.prototype.toString.call(v) === '[object Number]') {
+				return parseFloat(v).toFixed(4);
+			}
+			return v
+		}
 		this.#init();
 	}
 	#init() {
-		const tabs = this.pane.addTab({
+		// --- WebSocket Tab ---
+		const socketFolder = this.leftPane.addFolder({ title: 'WebSocket' });
+		socketFolder.addBinding(this.socketParams, 'url');
+		socketFolder.addBinding(this.socketParams, 'status', { readonly: true });
+		this.connectBtn = socketFolder.addButton({ title: 'Connect' });
+		this.connectBtn.on('click', () => {
+			this.callbacks.onConnect(this.socketParams.url);
+		})
+
+		const telemFolder = this.leftPane.addFolder({ title: 'Telemetry' });
+		telemFolder.addButton({ title: 'Raw' }).on('click', () => console.log(this.telem.raw));
+		telemFolder.addButton({ title: 'Hull' }).on('click', () => console.log(this.telem.hull));
+		telemFolder.addButton({ title: 'Wings' }).on('click', () => console.log(this.telem.panels));
+		telemFolder.addButton({ title: 'Wing Roots' }).on('click', () => console.log(this.telem.wing_roots));
+		telemFolder.addButton({ title: 'Propulsor' }).on('click', () => console.log(this.telem.propulsor));
+		telemFolder.addButton({ title: 'Misc' }).on('click', () => console.log(this.telem.misc));
+
+		const rightTabs = this.rightPane.addTab({
 			pages: [
 				{title: 'Scene'},
-				{title: 'WebSocket'},
 				{title: 'Simulation'}
 			]
 		})
 
 		// --- Scene Tab ---
-		tabs.pages[0].addButton({
+		rightTabs.pages[0].addButton({
 			title: 'Light Helpers',
 		}).on('click', () => this.callbacks.onToggleLightHelpers());
+		rightTabs.pages[0].addButton({
+			title: 'Refocus Camera',
+		}).on('click', () => this.callbacks.onRefocusCamera());
 		
-		const stlFolder = tabs.pages[0].addFolder({ title: 'STL Models' });
+		const stlFolder = rightTabs.pages[0].addFolder({ title: 'STL Models' });
 		stlFolder.addButton({ title: 'Hull' }).on('click', () => this.callbacks.onToggleHull());
 		stlFolder.addButton({ title: 'Wings' }).on('click', () => this.callbacks.onToggleWings());
 		stlFolder.addButton({ title: 'Rear Wings' }).on('click', () => this.callbacks.onToggleRearWings());
+		stlFolder.addBinding(this.sceneConfig, 'stlOpacity', { label: 'Opacity', min: 0, max: 1 }).on('change', () => this.callbacks.onStlOpacity());
 
-		const panelsFolder = tabs.pages[0].addFolder({ title: 'Panels' });
+		const panelsFolder = rightTabs.pages[0].addFolder({ title: 'Panels' });
 		panelsFolder.addBinding(this.sceneConfig, 'surfColor', { label: 'Surfaced' }).on('change', () => this.callbacks.onVisuals());
 		panelsFolder.addBinding(this.sceneConfig, 'subColor', { label: 'Submerged' }).on('change', () => this.callbacks.onVisuals());
 		panelsFolder.addBinding(this.sceneConfig, 'submergenceScale', { label: 'Submergence', min: 0, max: 1 }).on('change', () => this.callbacks.onVisuals());
@@ -69,15 +120,15 @@ export class UI {
 		panelsFolder.addButton({ title: 'Submerged' }).on('click', () => this.callbacks.onToggleSubmerged());
 		panelsFolder.addButton({ title: 'Submergence' }).on('click', () => this.callbacks.onToggleSubmergence());
 		
-		const vectorFolder = tabs.pages[0].addFolder({ title: 'Vectors' })
+		const vectorFolder = rightTabs.pages[0].addFolder({ title: 'Vectors' })
 		vectorFolder.addBinding(this.sceneConfig, 'forceColor', { label: 'Forces' }).on('change', () => this.callbacks.onVisuals());
 		vectorFolder.addBinding(this.sceneConfig, 'momentColor', { label: 'Moments' }).on('change', () => this.callbacks.onVisuals());
-		vectorFolder.addBinding(this.sceneConfig, 'forceScale', { label: 'Force Scale', min: 0, max: 1 }).on('change', () => this.callbacks.onVisuals());
-		vectorFolder.addBinding(this.sceneConfig, 'momentScale', { label: 'Moment Scale', min: 0, max: 1 }).on('change', () => this.callbacks.onVisuals());
+		vectorFolder.addBinding(this.sceneConfig, 'forceScale', { label: 'Force Scale', min: 0, max: 0.001 }).on('change', () => this.callbacks.onVisuals());
+		vectorFolder.addBinding(this.sceneConfig, 'momentScale', { label: 'Moment Scale', min: 0, max: 0.01 }).on('change', () => this.callbacks.onVisuals());
 		vectorFolder.addButton({ title: 'Force Vectors' }).on('click', () => this.callbacks.onToggleForces());
 		vectorFolder.addButton({ title: 'Moment Vectors' }).on('click', () => this.callbacks.onToggleMoments());
 		
-		const axesFolder = tabs.pages[0].addFolder({ title: 'Axes' });
+		const axesFolder = rightTabs.pages[0].addFolder({ title: 'Axes' });
 		axesFolder.addBinding(this.sceneConfig, 'hullAxesScale', { label: 'Hull Scale', min: 0, max: 1 }).on('change', () => this.callbacks.onVisuals());
 		axesFolder.addBinding(this.sceneConfig, 'foilAxesScale', { label: 'Foil Scale', min: 0, max: 0.5 }).on('change', () => this.callbacks.onVisuals());
 		axesFolder.addBinding(this.sceneConfig, 'propAxesScale', { label: 'Propulsor Scale', min: 0, max: 0.5 }).on('change', () => this.callbacks.onVisuals());
@@ -85,26 +136,18 @@ export class UI {
 		axesFolder.addButton({ title: 'Foil Axes' }).on('click', () => this.callbacks.onToggleFoilAxes());
 		axesFolder.addButton({ title: 'Propulsor Axes' }).on('click', () => this.callbacks.onTogglePropulsorAxes());
 
-		// --- WebSocket Tab ---
-		tabs.pages[1].addBinding(this.socketParams, 'url');
-		tabs.pages[1].addBinding(this.socketParams, 'status', { readonly: true });
-		this.connectBtn = tabs.pages[1].addButton({ title: 'Connect' });
-		this.connectBtn.on('click', () => {
-			this.callbacks.onConnect(this.socketParams.url);
-		})
-
 		// --- Simulation Tab ---
-		tabs.pages[2].addBinding(this.simStates, 'status', { readonly: true });
-		this.runBtn = tabs.pages[2].addButton({ title: 'Run' }).on('click', () => {
+		rightTabs.pages[1].addBinding(this.simStates, 'status', { readonly: true });
+		this.runBtn = rightTabs.pages[1].addButton({ title: 'Run' }).on('click', () => {
 			this.runBtn.disabled = true;
 			this.stepBtn.disabled = true;
 			this.#disableControls(true);
 			this.callbacks.onToggleRun();
 		});
-		this.stepBtn = tabs.pages[2].addButton({ title: 'Step' }).on('click', () => this.callbacks.onStep())
-		this.resetBtn = tabs.pages[2].addButton({ title: 'Reset' }).on('click', () => this.callbacks.onReset())
-		tabs.pages[2].addBinding(this.controlStates, 'dt', { label: 'Δt', min: 0.1, max: 1 });
-		const UFolder = tabs.pages[2].addFolder({ title: 'Velocities' });
+		this.stepBtn = rightTabs.pages[1].addButton({ title: 'Step' }).on('click', () => this.callbacks.onStep())
+		this.resetBtn = rightTabs.pages[1].addButton({ title: 'Reset' }).on('click', () => this.callbacks.onReset())
+		rightTabs.pages[1].addBinding(this.controlStates, 'dt', { label: 'Δt', min: 0.01, max: 1 });
+		const UFolder = rightTabs.pages[1].addFolder({ title: 'Velocities' });
 		UFolder.addBinding(this.simStates.U, 'u', { label: 'u [m/s]', readonly: true });
 		UFolder.addBinding(this.simStates.U, 'v', { label: 'v [m/s]', readonly: true });
 		UFolder.addBinding(this.simStates.U, 'w', { label: 'w [m/s]', readonly: true });
@@ -115,7 +158,7 @@ export class UI {
 			z: { min: -1, max: 1 },
 		}).on('change', ev => this.callbacks.onStateChange('U', ev.value));
 		
-		const omegaFolder = tabs.pages[2].addFolder({ title: 'Angular Rates' });
+		const omegaFolder = rightTabs.pages[1].addFolder({ title: 'Angular Rates' });
 		omegaFolder.addBinding(this.simStates.omega, 'p', { label: 'p [°/s]', readonly: true });
 		omegaFolder.addBinding(this.simStates.omega, 'q', { label: 'q [°/s]', readonly: true });
 		omegaFolder.addBinding(this.simStates.omega, 'r', { label: 'r [°/s]', readonly: true });
@@ -126,7 +169,7 @@ export class UI {
 			z: { min: -60, max: 60 },
 		}).on('change', ev => this.callbacks.onStateChange('omega', ev.value));
 		
-		const PhiFolder = tabs.pages[2].addFolder({ title: 'Euler Angles' });
+		const PhiFolder = rightTabs.pages[1].addFolder({ title: 'Euler Angles' });
 		PhiFolder.addBinding(this.simStates.Phi, 'phi', { label: 'ϕ [°]', readonly: true });
 		PhiFolder.addBinding(this.simStates.Phi, 'theta', { label: 'θ [°]', readonly: true });
 		PhiFolder.addBinding(this.simStates.Phi, 'psi', { label: 'ψ [°]', readonly: true });
@@ -137,16 +180,16 @@ export class UI {
 			z: { min: -180, max: 180 }
 		}).on('change', ev => this.callbacks.onStateChange('Phi', ev.value));
 		
-		const rFolder = tabs.pages[2].addFolder({ title: 'Position' });
+		const rFolder = rightTabs.pages[1].addFolder({ title: 'Position' });
 		rFolder.addBinding(this.simStates.r, 'x', { label: 'x [m]', readonly: true });
 		rFolder.addBinding(this.simStates.r, 'y', { label: 'y [m]', readonly: true });
 		rFolder.addBinding(this.simStates.r, 'z', { label: 'z [cm]', readonly: true });
 		this.rControl = rFolder.addBinding(this.controlStates, 'r', {
 			label: '<x,y,z>',
-			z: { min: -20, max: 50 }
+			z: { min: -50, max: 50 }
 		}).on('change', ev => this.callbacks.onStateChange('r', ev.value));
 		
-		const propFolder = tabs.pages[2].addFolder({ title: 'Propulsor States' });
+		const propFolder = rightTabs.pages[1].addFolder({ title: 'Propulsor States' });
 		propFolder.addBinding(this.simStates, 'I', { label: 'I [A]', readonly: true });
 		propFolder.addBinding(this.simStates, 'RPM', { label: 'RPM', readonly: true });
 		propFolder.addBinding(this.simStates, 'epsilon', { label: 'ε [V]', readonly: true });
@@ -173,6 +216,17 @@ export class UI {
 		this.PhiControl.disabled = disabled;
 		this.rControl.disabled = disabled;
 	}
+	setTelem(msg) {
+		this.telem.raw = msg;
+		this.telem.json = JSON.stringify(msg, this.telemFunc, 2);
+		this.telem.hull = JSON.stringify(msg['hull'], this.telemFunc, 2);
+		this.telem.panels = JSON.stringify(msg['panels'], this.telemFunc, 2);
+		this.telem.wing_roots = JSON.stringify(msg['wing_roots'], this.telemFunc, 2);
+		this.telem.propulsor = JSON.stringify(msg['propulsor'], this.telemFunc, 2);
+		const { hull, panels, wing_roots, propulsor, type, ...otherProperties } = msg;
+		this.telem.misc = JSON.stringify(otherProperties, this.telemFunc, 2);
+		this.leftPane.refresh();
+	}
 	syncControlStates() {
 		this.controlStates.U.x = this.simStates.U.u;
 		this.controlStates.U.y = this.simStates.U.v;
@@ -193,6 +247,6 @@ export class UI {
 		this.controlStates.epsilon = this.simStates.epsilon;
 		this.controlStates.psi_ra = this.simStates.psi_ra;
 
-		this.pane.refresh();
+		this.rightPane.refresh();
 	}
 }

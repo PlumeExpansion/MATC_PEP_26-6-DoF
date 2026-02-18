@@ -59,7 +59,7 @@ export class Arrow extends THREE.Group {
 	}
 	setPoint(point, scale = 1) {
 		this.point = point
-		this.quaternion.setFromUnitVectors(this.yHat, point.normalize());
+		this.quaternion.setFromUnitVectors(this.yHat, point.clone().normalize());
 		this.setScale(scale);
 	}
 	setScale(scale) {

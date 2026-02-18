@@ -31,7 +31,8 @@ const camera = new THREE.PerspectiveCamera(35, aspectRatio,0.1,200);
 //   200
 // );
 
-camera.position.set(5, -3, -2)
+camera.defaultPosition = new THREE.Vector3(5, -3, -2);
+camera.position.copy(camera.defaultPosition);
 camera.up = new THREE.Vector3(0,0,-1);
 
 const controls = new OrbitControls(camera, canvas);
@@ -58,6 +59,13 @@ ui.callbacks.onToggleLightHelpers = () => {
 	topLightHelper.visible = !topLightHelper.visible;
 	bottomLightHelper.visible = !bottomLightHelper.visible;
 };
+ui.callbacks.onRefocusCamera = () => {
+	const target = new THREE.Vector3(ui.simStates.r.x, ui.simStates.r.y, ui.simStates.r.z/100)
+	camera.position.copy(target).add(camera.defaultPosition);
+	camera.lookAt(target);
+	controls.target.copy(target);
+	controls.update();
+}
 
 // --- Waterplane Grid ---
 const grid = new THREE.GridHelper(20, 10);
@@ -74,7 +82,7 @@ const loader = new STLLoader();
 const hullGeometryOrig = await loader.loadAsync('RBird_Hull_Remesh.stl');
 const wingGeometryOrig = await loader.loadAsync('Wing_Applied_Low_Poly.stl');
 const rearWingGeometryOrig = await loader.loadAsync('Rear_Wing_Applied_Low_Poly.stl');
-const material = new THREE.MeshPhongMaterial({color: 'white'});
+const material = new THREE.MeshPhongMaterial({color: 'white', transparent: true, opacity: ui.sceneConfig.stlOpacity });
 const hullMesh = new THREE.Mesh(hullGeometryOrig, material);
 const wingMesh = new THREE.Mesh(wingGeometryOrig, material);
 const rearWingMesh = new THREE.Mesh(rearWingGeometryOrig, material);
@@ -85,6 +93,7 @@ raGroup.add(rearWingMesh);
 ui.callbacks.onToggleHull = () => hullMesh.visible = !hullMesh.visible;
 ui.callbacks.onToggleWings = () => wingMesh.visible = !wingMesh.visible;
 ui.callbacks.onToggleRearWings = () => rearWingMesh.visible = !rearWingMesh.visible;
+ui.callbacks.onStlOpacity = () => material.opacity = ui.sceneConfig.stlOpacity;
 
 // --- Components ---
 const constants = {
@@ -195,6 +204,7 @@ function telem(msg) {
 // --- SocketManager ---
 const socket = new SocketManager(
 	(msg) => {
+		ui.setTelem(msg);
 		if (msg['type'] == 'build') {
 			build(msg);
 		} else if (msg['type'] == 'telem') {

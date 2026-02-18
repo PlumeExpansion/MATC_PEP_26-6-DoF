@@ -39,8 +39,8 @@ export class Propulsor extends THREE.Group {
 
 		this.waterAxes.setRotMat(this.Cra_w);
 
-		this.force.setPoint(this.F.clone().applyMatrix3(Cb_ra));
-		this.moment.setPoint(this.M.clone().applyMatrix3(Cb_ra));
+		this.force.setPoint(this.F.clone().applyMatrix3(Cb_ra), this.config.forceScale);
+		this.moment.setPoint(this.M.clone().applyMatrix3(Cb_ra), this.config.momentScale);
 	}
 	syncVisuals() {
 		this.waterAxes.setScale(this.config.propAxesScale)

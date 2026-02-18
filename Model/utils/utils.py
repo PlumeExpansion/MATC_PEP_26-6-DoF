@@ -52,7 +52,7 @@ def stab_frame(U,omega,r_b_frame,C_loc_b):
 	U_mag = mag(U_local)
 	if U_mag < 1e-6:
 		return U_mag, U_local_loc_frame, 0.0, 0.0, np.eye(3)
-	alpha = atan2(U_local_loc_frame[2], U_local[0])
+	alpha = atan2(U_local_loc_frame[2], U_local_loc_frame[0])
 	beta = asin(U_local_loc_frame[1] / U_mag)
 	ca, sa = cos(alpha), sin(alpha)
 	cb, sb = cos(beta), sin(beta)

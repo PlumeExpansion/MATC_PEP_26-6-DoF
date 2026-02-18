@@ -63,7 +63,7 @@ export class WingRoot extends THREE.Group {
 		this.foilMoment.setScale(this.config.momentScale);
 		this.buoyantMoment.setScale(this.config.momentScale);
 
-		this.foilMoment.mat.color.set(this.config.forceColor);
+		this.foilForce.mat.color.set(this.config.forceColor);
 		this.buoyantForce.mat.color.set(this.config.forceColor);
 
 		this.foilMoment.mat.color.set(this.config.momentColor);

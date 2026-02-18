@@ -43,7 +43,7 @@ J = 0.00081		# rotor inertia (kg*m^2)
 ###################################
 # Miscellaneous (keel transom frame)
 
-CM_kt = (0.32, 0, -0.12)		# body frame origin
+CM_kt = (0.6, 0, -0.12)		# body frame origin
 ra_kt = (-0.1, 0, 0)			# rear axle frame origin
 r_surf_kt = (0.70, 0, -0.24)	# surfaced forces center
 

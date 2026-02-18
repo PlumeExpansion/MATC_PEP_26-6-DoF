@@ -83,7 +83,7 @@ def load_volume_area_data(path_npz):
 					   i_max_z,i_max_pitch,i_max_roll, min_base, res)
 
 @njit(cache=True)
-def query_volume_area(volume_area, query):
+def query_volume_area(volume_area, query, r_CM):
 	z, pitch, roll = query
 	grid_results = volume_area[0]
 	(range_z,range_pitch,range_roll, res_z,res_pitch,res_roll, 
@@ -112,8 +112,8 @@ def query_volume_area(volume_area, query):
 	area = output[1]
 	if vol < 1e-6 or area < 1e-6:
 		return vol, area, np.zeros(3), np.zeros(3)
-	vol_center = output[0:3]
-	area_center = output[3:6]
+	vol_center = output[2:5] - r_CM
+	area_center = output[5:8] - r_CM
 	return vol, area, vol_center, area_center
 
 def load_aero_coeffs(path):
@@ -187,7 +187,7 @@ if __name__ == '__main__':
 	z_range = np.linspace(0,0.2,100)
 	vol_area = np.zeros((len(z_range), 2))
 	for i,z in enumerate(z_range):
-		vol_area[i] = query_volume_area(vol_area_data, np.array([z,0,0]))[0:2]
+		vol_area[i] = query_volume_area(vol_area_data, np.array([z,0,0]), np.array([0,0,0]))[0:2]
 
 	plt.figure()
 	plt.plot(z_range, vol_area[:,0], label='Volume')

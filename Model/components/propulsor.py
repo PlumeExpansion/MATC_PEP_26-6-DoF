@@ -83,6 +83,7 @@ def calc_thrust_torque(VA,Vrot, z_d_2_world, z_d_1_world, rho_surf,rho, d, thrus
 	rho = rho_surf + (rho - rho_surf)*fp
 	QA = 1/2*rho*Vr2*(pi/4*d**2)
 	T, Q = QA * query_periodic_1D(thrust_torque_coeffs, beta)
+	Q *= d
 	F = Cb_ra @ np.array([eta_T*T, 0, 0])
 	M = cross(r_prop_body, F)
 	return beta, fp, T, Q, F, M
