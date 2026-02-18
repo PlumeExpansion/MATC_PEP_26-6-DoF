@@ -37,10 +37,10 @@ def load_fourrier_coeffs(path_coeffs):
 
 def main():
 	prop = 'B4-70-14'
-	input_file = f'4 quad prop data/fourier coeffs/{prop}.txt'
-	output_file = f'4 quad prop data/thrust torque coeffs/{prop}.txt'
-	export = True
-	plot = False
+	input_file = f'./params/4 quad prop data/fourier coeffs/{prop}.txt'
+	output_file = f'./params/4 quad prop data/thrust torque coeffs/{prop}.txt'
+	export = False
+	plot = True
 
 	f_coeffs = load_fourrier_coeffs(input_file)
 	beta = np.linspace(0,2*np.pi,360)
@@ -58,6 +58,7 @@ def main():
 		beta_deg = np.rad2deg(beta)
 		plt.plot(beta_deg, CT_CQ[:,0])
 		plt.plot(beta_deg, -10*CT_CQ[:,1])
+		plt.legend(['$C_T^*$','$-10C_Q^*$'])
 		plt.title(prop)
 		plt.xlabel('Beta [deg]')
 		plt.ylabel(r'$C_T^*$ & $-10C_Q^*$')

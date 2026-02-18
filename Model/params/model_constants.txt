@@ -33,10 +33,7 @@ w_f = 0.05 		# foiling wake factor
 KV = 150		# motor speed constant (RPM/V)
 Kt = 0.0689		# motor torque constant (Nm/A)
 I0 = 2.7		# no load current (A)
-RPM0 = 3650		# no load speed (RPM)
-R = 0.013		# motor resistance (Ω)
-L = 18.2e-6		# motor inductance (H)
-J = 0.00081		# rotor inertia (kg*m^2)
+R0 = 0.013		# motor resistance (Ω)
 
 ##################################################################
 # Point Locations (m) (fixed axis X front, Y right, Z down)
