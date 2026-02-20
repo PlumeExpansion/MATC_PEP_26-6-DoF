@@ -55,9 +55,9 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'omega': sim.model.omega = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'Phi': sim.model.Phi = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'r': sim.model.r = np.array([value['x'],value['y'],value['z']/100])
-					elif state == 'speed': sim.base_speed = value
+					elif state == 'rate': sim.base_rate = value
 					elif state == 'input':
-						psi_ra = -value['x']*sim.model.psi_ra_max*np.pi/180
+						psi_ra = -value['x']*sim.model.psi_ra_max
 						V = value['y']*sim.model.V_max
 						if sim.is_running():
 							sim.input_queued = True
@@ -139,24 +139,40 @@ async def simulation_loop():
 	except Exception as e:
 		print(f'ERROR: simulation error - {e}')
 
-async def console_input():
+async def console_loop():
 	sentinel = ['q', 'quit', 'stop', 'exit']
 	while True:
 		cmd = await asyncio.to_thread(input)
 		if cmd.lower() in sentinel:
 			print('INFO: termination received')
 			break
-		print(f"INFO: received: {cmd}")
+		# console commands
+		print(f"INFO: console received -  {cmd}")
 
-async def controller_input():
+async def controller_loop():
 	if controller is None: return
+	loop_rate = 100
 	try:
 		while True:
 			pygame.event.pump()
 
 			yaw = controller.get_axis(0)
 			throttle = controller.get_axis(1)
-	except asyncio.CancelledError: pass
+			
+			psi_ra = yaw*sim.model.psi_ra_max
+			V = throttle*sim.model.V_max
+			if sim.is_running():
+				sim.input_queued = True
+				sim.psi_ra = psi_ra # type: ignore
+				sim.V = V # type: ignore
+			else:
+				sim.model.psi_ra = psi_ra
+				sim.model.propulsor.V = V
+			await asyncio.sleep(1/loop_rate)
+	except asyncio.CancelledError:
+		print('INFO: controller link terminated')
+	except Exception as e:
+		print(f'ERROR: controller error - {e}')
 
 # --- Entry Point ---
 async def main():
@@ -165,10 +181,10 @@ async def main():
 		print(f'INFO: simulation server started on port {port}')
 
 		sim_task = asyncio.create_task(simulation_loop())
-		controller_task = asyncio.create_task(controller_input())
+		controller_task = asyncio.create_task(controller_loop())
 
 		try:
-			await console_input()
+			await console_loop()
 		except asyncio.CancelledError:
 			print(f'\fINFO: terminating')
 		finally:

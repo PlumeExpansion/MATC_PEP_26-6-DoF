@@ -79,6 +79,7 @@ export class Propulsor extends THREE.Group {
 	}
 	toggleSubmergence() {
 		this.submergence.visible = !this.submergence.visible;
+		this.propMesh.visible = !this.propMesh.visible;
 	}
 	dispose() {
 		this.parent?.remove(this);

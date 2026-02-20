@@ -7,10 +7,10 @@ from model_RBird import Model_6DoF
 
 class Simulation:
 	def __init__(self, model: Model_6DoF):
-		self.base_speed = 1
-		self.speed = 1
-		self.speed_restore = 0.2
-		self.speed_boundary = 0.98
+		self.base_rate = 1
+		self.rate = 1
+		self.rate_restore = 0.2
+		self.rate_boundary = 0.98
 
 		self.time_last = 0
 		self.pause()
@@ -18,18 +18,18 @@ class Simulation:
 		self.set_model(model)
 		def check_state(t, state):
 			criterion = [
-				np.abs(state[0]) < 20,
-				np.abs(state[1]) < 20,
-				np.abs(state[2]) < 20,
+				np.abs(state[0]) < 20,					# u
+				np.abs(state[1]) < 20,					# v
+				np.abs(state[2]) < 20,					# w
 
-				np.abs(state[3]) < 2*np.pi,
-				np.abs(state[4]) < 2*np.pi,
-				np.abs(state[5]) < 2*np.pi,
+				np.abs(state[3]) < 2*np.pi,				# p
+				np.abs(state[4]) < 2*np.pi,				# q
+				np.abs(state[5]) < 2*np.pi,				# r
 
-				np.abs(state[6]) < 60/180*np.pi,
-				np.abs(state[7]) < 45/180*np.pi,
+				np.abs(state[6]) < 60/180*np.pi,		# phi
+				np.abs(state[7]) < 45/180*np.pi,		# theta
 				
-				np.abs(state[11]) < 3,
+				np.abs(state[11]) < 3,					# z
 			]
 			return all(criterion)
 		
@@ -37,8 +37,8 @@ class Simulation:
 		self.__check_state = check_state
 
 		self.input_queued = False
-		self.V = 0
-		self.psi_ra = 0
+		self.V = 0.0
+		self.psi_ra = 0.0
 
 	def set_model(self, model: Model_6DoF):
 		self.model = model
@@ -82,21 +82,21 @@ class Simulation:
 			self.time_last = time_now
 		elif np.isnan(dt):
 			return
-		self.speed = min(self.speed, self.base_speed)
-		res = solve_ivp(self.__get_state_dot, [0,dt*self.speed], self.model.get_state(), events=self.__check_state, 
+		self.rate = min(self.rate, self.base_rate)
+		res = solve_ivp(self.__get_state_dot, [0,dt*self.rate], self.model.get_state(), events=self.__check_state, 
 				  method='RK45')
 		if self.__running:
 			time_now = time.perf_counter()
 			solve_dt = time_now-self.time_last
 			if solve_dt >= dt:
 				self.time_last = time_now
-				self.speed = min(dt/solve_dt, self.speed)
-				print(f'WARNING: integration time exceeding real time, slowing simulation to {self.speed:.2f} speed')
-			elif self.speed < self.speed_boundary * self.base_speed:
-				self.speed = self.base_speed*self.speed_restore + self.speed*(1-self.speed_restore)
-				if self.speed > self.speed_boundary * self.base_speed:
-					self.speed = self.base_speed
-				print(f'INFO: restoring simulation speed to {self.speed:.2f}')
+				self.rate = min(dt/solve_dt, self.rate)
+				print(f'WARNING: integration exceeded buffer time, slowing simulation rate to {self.rate:.2f}')
+			elif self.rate < self.rate_boundary * self.base_rate:
+				self.rate = self.base_rate*self.rate_restore + self.rate*(1-self.rate_restore)
+				if self.rate > self.rate_boundary * self.base_rate:
+					self.rate = self.base_rate
+				print(f'INFO: restoring simulation rate to {self.rate:.2f}')
 		if res.status == -1:
 			print(f'WARNING: integration failed, pausing')
 			self.pause()
@@ -238,5 +238,5 @@ class Simulation:
 		self.__telem['query'] = self.model.query.tolist()
 
 		self.__telem['running'] = self.__running
-		self.__telem['speed'] = self.speed
+		self.__telem['rate'] = self.rate
 		self.telem = json.dumps(self.__telem)

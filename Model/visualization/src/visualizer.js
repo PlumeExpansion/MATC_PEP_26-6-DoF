@@ -118,7 +118,7 @@ const hull = new Hull(ui.sceneConfig);
 const propulsor = new Propulsor(ui.sceneConfig);
 bodyGroup.add(hull, wingRoots.get('0'), wingRoots.get('1'));
 raGroup.add(propulsor);
-const components = [hull, propulsor, wingRoots.get('0'), wingRoots.get('1'), waterplane];
+const components = [hull, propulsor, wingRoots.get('0'), wingRoots.get('1')];
 
 ui.constants = constants;
 ui.callbacks.onToggleHullAxes = () => hull.toggleAxes();
@@ -127,7 +127,10 @@ ui.callbacks.onToggleFoilAxes = () => {
 	wingRoots.values().forEach(wr => wr.toggleAxes());
 }
 ui.callbacks.onTogglePropulsorAxes = () => propulsor.toggleAxes();
-ui.callbacks.onVisuals = () => components.forEach(c => c.syncVisuals());
+ui.callbacks.onVisuals = () => {
+	components.forEach(c => c.syncVisuals());
+	waterplane.syncVisuals();
+};
 ui.callbacks.onToggleForces = () => components.forEach(c => c.toggleForces());
 ui.callbacks.onToggleMoments = () => components.forEach(c => c.toggleMoments());
 ui.callbacks.onToggleSubmerged = () => panels.forEach(p => p.toggleSubmerged());
@@ -165,7 +168,7 @@ function build(msg) {
 	propulsor.build(msg['propulsor']);
 
 	constants.V_max = msg['V_max'];
-	constants.psi_ra_max = msg['psi_ra_max'];
+	constants.psi_ra_max = msg['psi_ra_max']*180/Math.PI;
 
 	ui.setBuildTelem(msg);
 
@@ -206,7 +209,7 @@ function telem(msg) {
 	ui.simStates.V = propulsor.V;
 	ui.simStates.I = propulsor.I;
 	ui.simStates.RPM = propulsor.n*60;
-	ui.simStates.speed = msg['speed'];
+	ui.simStates.rate = msg['rate'];
 	ui.updateSimulationStatus(msg['running']);
 	
 	if (syncFlag) {
@@ -219,6 +222,7 @@ function telem(msg) {
 
 	waterplane.updateGrid(states.r);
 	components.forEach(c => c.syncVisuals());
+	waterplane.syncVisuals();
 }
 
 ui.callbacks.onPause = () => {

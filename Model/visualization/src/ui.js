@@ -41,7 +41,7 @@ export class UI {
 			RPM: 0,
 			V: 0,
 			psi_ra: 0,
-			speed: 1
+			rate: 1
 		}
 		this.controlStates = {
 			U: {x: 0, y: 0, z: 0},
@@ -49,7 +49,7 @@ export class UI {
 			Phi: {x: 0, y: 0, z: 0},
 			r: {x: 0, y: 0, z: 0},
 			input: {x: 0, y: 0},
-			speed: 1,
+			rate: 1,
 			log_dt: -2
 		}
 		this.telem = {
@@ -102,8 +102,8 @@ export class UI {
 			disabled: this.sceneConfig.cameraFollow });
 		// -- Simulation --
 		const simFolder = this.leftPane.addFolder({ title: 'Simulation' });
-		simFolder.addBinding(this.simStates, 'speed', { readonly: true });
-		simFolder.addBinding(this.controlStates, 'speed', { label: 'target speed', min: 0.1, max: 1 }).on('change', ev => this.callbacks.onStateChange('speed', ev.value))
+		simFolder.addBinding(this.simStates, 'rate', { readonly: true });
+		simFolder.addBinding(this.controlStates, 'rate', { label: 'target rate', min: 0.1, max: 1 }).on('change', ev => this.callbacks.onStateChange('speed', ev.value))
 		this.runBtn = simFolder.addButton({ title: 'Run' }).on('click', () => {
 			this.runBtn.disabled = true;
 			this.stepBtn.disabled = true;
@@ -173,7 +173,7 @@ export class UI {
 			this.syncControlStates();
 			this.syncInputs(this.constants);
 		})
-		this.resetBtn = rightTabs.pages[1].addButton({ title: 'Reset' }).on('click', () => this.callbacks.onReset());
+		this.resetBtn = rightTabs.pages[1].addButton({ title: 'Zero States' }).on('click', () => this.callbacks.onReset());
 		// -- U --
 		const UFolder = rightTabs.pages[1].addFolder({ title: 'Velocities' });
 		UFolder.addBinding(this.simStates.U, 'u', { label: 'u [m/s]', readonly: true });
@@ -218,7 +218,7 @@ export class UI {
 		}).on('change', ev => this.callbacks.onStateChange('r', ev.value));
 		// -- Propulsor --
 		const propFolder = rightTabs.pages[1].addFolder({ title: 'Propulsor States' });
-		propFolder.addButton({ title: 'Reset Inputs' }).on('click', () => {
+		propFolder.addButton({ title: 'Zero Inputs' }).on('click', () => {
 			this.controlStates.input.x = 0;
 			this.controlStates.input.y = 0;
 			this.rightPane.refresh();

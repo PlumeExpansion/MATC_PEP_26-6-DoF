@@ -102,7 +102,7 @@ class Model_6DoF:
 		self.r_CM = self.get_const('r_CM_kt')
 		self.r_ra = self.get_const('r_ra_kt') - self.r_CM
 
-		self.psi_ra_max = self.get_const('psi_ra_max')
+		self.psi_ra_max = self.get_const('psi_ra_max')*np.pi/180
 		self.V_max = self.get_const('V_max')
 
 	def get_const(self, key, pos_check=False):
