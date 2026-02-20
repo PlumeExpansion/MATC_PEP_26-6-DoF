@@ -213,6 +213,8 @@ async def console_loop():
 			print(f'INFO: current integration method - {sim.method}')
 		elif cmd == 'time':
 			print(f'INFO: current elapsed time - {sim.elapsed:.4f}')
+		elif cmd == 'status':
+			print(f'INFO: Simulation {"running" if sim.is_running() else "paused"} at time {sim.elapsed:.4f}')
 		elif len(tokens) == 2:
 			cmd = tokens[0]
 			arg = tokens[1]
