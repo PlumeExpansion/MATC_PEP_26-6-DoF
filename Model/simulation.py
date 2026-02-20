@@ -101,7 +101,7 @@ class Simulation:
 			print(f'WARNING: integration failed, pausing')
 			self.pause()
 		elif res.status == 0:
-			print(f'INFO: {len(res.t)} steps taken')
+			print(f'INFO: {len(res.t)} timesteps taken')
 			self.model.set_state(res.y[:,-1])
 		else:
 			print(f'WARNING: integration aborted by state check, pausing')

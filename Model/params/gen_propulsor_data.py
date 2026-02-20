@@ -11,15 +11,15 @@ def main():
 	KV = 150		# motor speed constant (RPM/V)
 	Kt = 0.0689		# motor torque constant (Nm/A)
 	I0 = 2.7		# no load current (A)
-	R0 = 0.013		# motor resistance (Ω)
+	R0 = 0.0582		# motor resistance (Ω)
 
-	d = 0.12		# propeller diameter (m)
+	d = 0.10		# propeller diameter (m)
 	
 	output_path = f'./params/propulsor data/FlipSky-85165-150_B4-70-14_{int(d*100)}.npz'
 	
 	Ke = 60/(2*np.pi*KV)
 
-	plot = False
+	plot = True
 	export = True
 
 	f_coeffs = FourQuad.load_fourrier_coeffs(prop_path)
