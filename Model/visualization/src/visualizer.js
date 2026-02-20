@@ -190,7 +190,7 @@ function telem(msg) {
 	
 	ui.simStates.epsilon = propulsor.epsilon;
 	ui.simStates.I = propulsor.I;
-	ui.simStates.RPM = propulsor.omega*60/(2*Math.PI);
+	ui.simStates.RPM = propulsor.n*60;
 	ui.updateSimulationStatus(msg['running']);
 	
 	if (syncFlag) {
@@ -222,7 +222,10 @@ socket.connect(ui.socketParams.url);
 ui.callbacks.onConnect = (url) => socket.connect(url);
 ui.callbacks.onStateChange = (state, value) => socket.send({ type: 'set', state: state, value: value });
 ui.callbacks.onToggleRun = () => socket.send({ type: 'sim' });
-ui.callbacks.onStep = () => socket.send({ type: 'step', dt: ui.controlStates.dt });
+ui.callbacks.onStep = () => {
+	syncFlag = true;
+	socket.send({ type: 'step', dt: Math.pow(10,ui.controlStates.log_dt) });
+};
 ui.callbacks.onReset = () => {
 	syncFlag = true;
 	socket.send({ type: 'reset' });

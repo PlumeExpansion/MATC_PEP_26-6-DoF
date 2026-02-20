@@ -26,7 +26,7 @@ class Hull:
 			raise Exception(f'initial waterline failed to converge - {sol.flag}')
 	
 	def calc_force_moments(self):
-		(self.vol, self.area, self.vol_center, self.area_center) = query_volume_area(self.vol_area_data, calc_query(self.model.query), self.model.r_CM)
+		(self.vol, self.area, self.vol_center, self.area_center) = calc_volume_area(self.vol_area_data, self.model.query, self.model.r_CM)
 		# buoyant force moment
 		self.F_b, self.M_b = calc_buoyancy(self.vol, self.model.rho, self.model.g, self.model.Cb0, self.vol_center)
 		# hull lift & drag force moment
@@ -39,7 +39,10 @@ class Hull:
 																eye3,eye3, self.surf_aero_coeffs, self.model.rho_surf, self.area_surf)
 
 @njit(cache=True)
-def calc_query(query):
+def calc_volume_area(vol_area, query, r_CM):
 	mod_query = query.copy()
 	mod_query[2] = abs(query[2])
-	return mod_query
+	(vol, area, vol_center, area_center) = query_volume_area(vol_area, mod_query, r_CM)
+	vol_center[1] = vol_center[1]*np.copysign(1, query[2])
+	area_center[1] = area_center[1]*np.copysign(1, query[2])
+	return vol, area, vol_center, area_center

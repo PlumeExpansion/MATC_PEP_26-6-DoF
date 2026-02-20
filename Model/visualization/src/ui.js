@@ -12,7 +12,7 @@ export class UI {
 
 		this.callbacks = callbacks;
 		this.socketParams = {
-			url: 'ws://localhost:8765',
+			url: 'ws://localhost:9000',
 			status: 'Disconnected'
 		};
 		this.sceneConfig = {
@@ -35,7 +35,7 @@ export class UI {
 			r: {x: 0, y: 0, z: 0},
 			I: 0,
 			RPM: 0,
-			epsilon: 0,
+			V: 0,
 			psi_ra: 0,
 			status: 'Paused'
 		}
@@ -44,9 +44,9 @@ export class UI {
 			omega: {x: 0, y: 0, z: 0},
 			Phi: {x: 0, y: 0, z: 0},
 			r: {x: 0, y: 0, z: 0},
-			epsilon: 0,
+			V: 0,
 			psi_ra: 0,
-			dt: 0.1
+			log_dt: -2
 		}
 		this.telem = {
 			raw: 'N/A'
@@ -146,7 +146,7 @@ export class UI {
 		});
 		this.stepBtn = rightTabs.pages[1].addButton({ title: 'Step' }).on('click', () => this.callbacks.onStep())
 		this.resetBtn = rightTabs.pages[1].addButton({ title: 'Reset' }).on('click', () => this.callbacks.onReset())
-		rightTabs.pages[1].addBinding(this.controlStates, 'dt', { label: 'Δt', min: 0.01, max: 1 });
+		rightTabs.pages[1].addBinding(this.controlStates, 'log_dt', { label: 'log(Δt)', min: -4, max: -2 });
 		const UFolder = rightTabs.pages[1].addFolder({ title: 'Velocities' });
 		UFolder.addBinding(this.simStates.U, 'u', { label: 'u [m/s]', readonly: true });
 		UFolder.addBinding(this.simStates.U, 'v', { label: 'v [m/s]', readonly: true });
@@ -192,10 +192,10 @@ export class UI {
 		const propFolder = rightTabs.pages[1].addFolder({ title: 'Propulsor States' });
 		propFolder.addBinding(this.simStates, 'I', { label: 'I [A]', readonly: true });
 		propFolder.addBinding(this.simStates, 'RPM', { label: 'RPM', readonly: true });
-		propFolder.addBinding(this.simStates, 'epsilon', { label: 'ε [V]', readonly: true });
+		propFolder.addBinding(this.simStates, 'V', { label: 'V [V]', readonly: true });
 		propFolder.addBinding(this.simStates, 'psi_ra', { label: 'ψ-ra [°]', readonly: true });
-		propFolder.addBinding(this.controlStates, 'epsilon', { label: 'ε [V]', min: -44.4, max: 44.4 })
-			.on('change', ev => this.callbacks.onStateChange('epsilon', ev.value));
+		propFolder.addBinding(this.controlStates, 'V', { label: 'V [V]', min: -44.4, max: 44.4 })
+			.on('change', ev => this.callbacks.onStateChange('V', ev.value));
 		propFolder.addBinding(this.controlStates, 'psi_ra', { label: 'ψ-ra [°]', min: -15, max: 15 })
 			.on('change', ev => this.callbacks.onStateChange('psi_ra', ev.value));
 	}

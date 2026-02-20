@@ -29,8 +29,8 @@ export class Propulsor extends THREE.Group {
 		this.beta = telem['beta'];
 		this.fp = telem['fp'];
 		this.I = telem['I'];
-		this.omega = telem['omega'];
-		this.epsilon = telem['epsilon'];
+		this.n = telem['n'];
+		this.V = telem['V'];
 		this.T = telem['T'];
 		this.Q = telem['Q'];
 		this.F.fromArray(telem['F']);

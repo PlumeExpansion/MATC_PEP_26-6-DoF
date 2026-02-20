@@ -3,7 +3,7 @@ import websockets
 import json
 import time
 import numpy as np
-from scipy.integrate import ode
+from scipy.integrate import solve_ivp
 
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -17,13 +17,6 @@ from model_RBird import Model_6DoF
 class Simulation:
 	def __init__(self, model: Model_6DoF):
 		self.model = model
-		
-		def get_state_dot(t, state):
-			self.model.set_state(state)
-			return self.model.get_state_dot()
-
-		self.system = ode(get_state_dot).set_integrator('dopri5')
-		self.system.set_initial_value(model.get_state())
 
 		self.time_last = 0
 		self.pause()
@@ -32,6 +25,30 @@ class Simulation:
 		self.__set_build_telem()
 		self.__init_telem()
 		self.set_telemetry()
+		def check_state(t, state):
+			criterion = [
+				np.abs(state[0]) < 20,
+				np.abs(state[1]) < 20,
+				np.abs(state[2]) < 20,
+
+				np.abs(state[3]) < 4*np.pi,
+				np.abs(state[4]) < 4*np.pi,
+				np.abs(state[5]) < 4*np.pi,
+
+				np.abs(state[6]) < 45/180*np.pi,
+				np.abs(state[7]) < 60/180*np.pi,
+				
+				np.abs(state[11]) < 1,
+			]
+			return all(criterion)
+		
+		check_state.terminal = True
+		self.__check_state = check_state
+
+	def __get_state_dot(self, t, state):
+		self.model.set_state(state)
+		self.model.calc_state_dot()
+		return self.model.get_state_dot()
 
 	def pause(self):
 		self.__running = False
@@ -46,7 +63,6 @@ class Simulation:
 	def reset(self):
 		self.pause()
 		self.model.set_state(np.zeros(14))
-		self.system.set_initial_value(self.model.get_state())
 		self.model.set_input(np.zeros(2))
 		self.model.calc_state_dot()
 		self.set_telemetry()
@@ -54,18 +70,27 @@ class Simulation:
 	def step(self,dt: float=np.nan):
 		if self.__running:
 			if not np.isnan(dt):
-				print('WARNING: simulation step of {dt} requested while running')
+				print(f'WARNING: simulation step of {dt} requested while running')
 			time_now = time.perf_counter()
 			dt = time_now - self.time_last
 			self.time_last = time_now
 		elif np.isnan(dt):
 			return
-		if self.system.successful():
-			self.system.integrate(self.system.t + dt)
-			self.model.set_state(self.system.y)
-		else:
+		res = solve_ivp(self.__get_state_dot, [0,dt], self.model.get_state(), events=self.__check_state, 
+				  method='Radau')
+		# res = solve_ivp(self.__get_state_dot, [0,dt], self.model.get_state(), events=self.__check_state, 
+		# 		  method='Radau', rtol=1e-6, atol=1e-9, max_step=0.01)
+		if res.status == -1:
+			print(f'WARNING: integration failed')
 			self.pause()
-			print('ERROR: simulation integration failed, pausing')
+		elif res.status == 0:
+			print(f'INFO: {len(res.t)} steps taken')
+			self.model.set_state(res.y[:,-1])
+		else:
+			print(f'WARNING: integration aborted by state check')
+			self.pause()
+
+		return res
 
 	def get_dt(self):
 		return time.perf_counter()-self.time_last
@@ -174,13 +199,11 @@ class Simulation:
 		
 		p = self.model.propulsor
 		p_telem = self.__telem['propulsor']
-		p_telem['beta'] = p.beta
 		p_telem['fp'] = p.fp
-		p_telem['I'] = p.I
-		p_telem['omega'] = p.omega
-		p_telem['epsilon'] = p.epsilon
+		p_telem['n'] = p.n
 		p_telem['T'] = p.T
 		p_telem['Q'] = p.Q
+		p_telem['I'] = p.I
 		p_telem['F'] = p.F.tolist()
 		p_telem['M'] = p.M.tolist()
 		p_telem['Cra_w'] = p.Cra_w.flatten().tolist()
@@ -199,6 +222,10 @@ class Simulation:
 
 sim = Simulation(model_RB.make_default())
 sockets = set()
+
+async def broadcast_telem():
+	for socket in sockets:
+		await socket.send(sim.telem)
 
 # --- Joystick Link ---
 pygame.init()
@@ -235,19 +262,21 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'omega': sim.model.omega = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'Phi': sim.model.Phi = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'r': sim.model.r = np.array([value['x'],value['y'],value['z']/100])
-					elif state == 'epsilon': sim.model.propulsor.epsilon = value
+					elif state == 'V': sim.model.propulsor.V = value
 					elif state == 'psi_ra': sim.model.psi_ra = value*np.pi/180
 					else: print(f'WARNING: unknown state set request - {state} = {value}')
 
-					sim.system.set_initial_value(sim.model.get_state(), sim.system.t)
 					sim.model.calc_state_dot()
 					sim.set_telemetry()
-					for socket in sockets:
-						await socket.send(sim.telem)
+
+					await broadcast_telem()
 				elif dataType == 'sim':
 					if sim.is_running():
 						sim.pause()
 						print(f'INFO: pausing simulation')
+						sim.set_telemetry()
+						
+						await broadcast_telem()
 					else:
 						sim.resume()
 						print(f'INFO: resuming simulation')
@@ -257,14 +286,13 @@ async def handler(socket: websockets.ServerConnection):
 
 					sim.model.calc_state_dot()
 					sim.set_telemetry()
-					for socket in sockets:
-						await socket.send(sim.telem)
+
+					await broadcast_telem()
 				elif dataType == 'reset':
 					print(f'INFO: resetting simulation')
 					sim.reset()
 					
-					for socket in sockets:
-						await socket.send(sim.telem)
+					await broadcast_telem()
 				else:
 					print(f'WARNING: unknown data received - {data}')
 			except Exception as e:
@@ -290,8 +318,8 @@ async def simulation_loop():
 				
 				sim.model.calc_state_dot()
 				sim.set_telemetry()
-				for socket in sockets:
-					await socket.send(sim.telem)
+				
+				await broadcast_telem()
 			await asyncio.sleep(1/loop_rate)
 	except asyncio.CancelledError:
 		print('INFO: simulation terminated')
@@ -319,8 +347,8 @@ async def controller_input():
 
 # --- Entry Point ---
 async def main():
-	port = 8765
-	async with websockets.serve(handler, 'localhost', port):
+	port = 9000
+	async with websockets.serve(handler, '127.0.0.1', port):
 		print(f'INFO: simulation server started on port {port}')
 
 		sim_task = asyncio.create_task(simulation_loop())

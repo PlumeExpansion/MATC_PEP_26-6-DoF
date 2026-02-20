@@ -4,11 +4,11 @@ export default {
     base: './',
 
 	server: {
-		port: 8800,
+		port: 9900,
 		strictPort: true
 	},
 	preview: {
-		port: 8800,
+		port: 9900,
 		strictPort: true
 	}
 }
