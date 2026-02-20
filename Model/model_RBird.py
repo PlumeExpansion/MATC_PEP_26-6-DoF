@@ -171,7 +171,7 @@ class Model_6DoF:
 		try:
 			vol_area_data = load_volume_area_data(path_hull)
 		except Exception as e:
-			print(f'ERROR: failed to load/interpolate hull volume area data - {e}')
+			print(f'ERROR: failed to load hull volume area data - {e}')
 			return 1
 		try:
 			hull_aero_coeffs = load_aero_coeffs(path_aero_coeffs_root+'hull.txt')
@@ -194,7 +194,7 @@ class Model_6DoF:
 		try:
 			vol_area_data = load_volume_area_data(path_wing_root)
 		except Exception as e:
-			print(f'ERROR: failed to load/interpolate wing root volume area data - {e}')
+			print(f'ERROR: failed to load wing root volume area data - {e}')
 			return 1
 		try:
 			aero_coeffs = load_aero_coeffs(path_aero_coeffs_root+'wing_root.txt')
@@ -206,13 +206,13 @@ class Model_6DoF:
 		self.wing_roots = (wr_L, wr_R)
 		return 0
 
-	def __make_propulsor(self, path_propulsion):
+	def __make_propulsor(self, path_propulsor):
 		try:
-			thrust_torque_coeffs = load_thrust_torque_coeffs(path_propulsion)
+			prop_data = load_propulsor_data(path_propulsor)
 		except Exception as e:
 			print(f'ERROR: failed to load propulsor data - {e}')
 			return 1
-		self.propulsor = Propulsor(self, thrust_torque_coeffs)
+		self.propulsor = Propulsor(self, prop_data)
 		return 0
 
 	def calc_state_dot(self):
@@ -237,7 +237,6 @@ class Model_6DoF:
 		M += self.hull.M_h + self.hull.M_b + self.hull.M_surf
 
 		self.propulsor.calc_force_moments()
-		self.propulsor.calc_state_dot()
 		F += self.propulsor.F
 		M += self.propulsor.M
 
@@ -245,15 +244,14 @@ class Model_6DoF:
    			self.H) = calc_state_dot(F,M, self.Cb0, self.C0b, self.m, self.g, self.Ib, self.Ib_inv, self.U, self.omega, self.Phi)
 
 	def get_state(self):
-		return np.concatenate((self.U, self.omega, self.Phi, self.r, self.propulsor.get_state()))
+		return np.concatenate((self.U, self.omega, self.Phi, self.r))
 	def get_state_dot(self):
-		return np.concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot, self.propulsor.get_state_dot()))
+		return np.concatenate((self.U_dot, self.omega_dot, self.Phi_dot, self.r_dot))
 	def set_state(self, state):
 		self.U = state[0:3]
 		self.omega = state[3:6]
 		self.Phi = state[6:9]
 		self.r = state[9:12]
-		self.propulsor.set_state(state[12:14])
 	
 	def get_input(self):
 		return np.array([self.psi_ra, self.propulsor.get_input()])
@@ -280,7 +278,7 @@ def calc_state_dot(F,M, Cb0,C0b, m,g, Ib,Ib_inv, U,omega,Phi):
 
 def make_default():
 	return Model_6DoF('params/model_constants.txt','params/hull_data_regular_grid.npz','params/left_wing_root_data_regular_grid.npz',
-			'params/sample aero coeffs/','params/4 quad prop data/thrust torque coeffs/B4-70-14.txt')
+			'params/sample aero coeffs/','params/propulsor data/FlipSky-85165-150_B4-70-14_10.npz')
 
 def main():
 	import cProfile
@@ -292,6 +290,9 @@ def main():
 	with cProfile.Profile() as state_dot_profile:
 		model.calc_state_dot()
 	print(model.hull.z0)
+	model.r[2] = model.hull.z0
+	model.calc_state_dot()
+	print(model.hull.vol_center)
 	# results = pstats.Stats(make_profile)
 	# results.sort_stats(pstats.SortKey.TIME)
 	# results.print_stats()

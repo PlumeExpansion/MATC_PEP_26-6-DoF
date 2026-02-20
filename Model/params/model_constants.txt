@@ -20,27 +20,20 @@ A_surf = 0.1065 	# surfaced frontal area (m^2)
 ###################################
 # Propeller Parameters
 
-d = 0.11		# diameter (m)
+d = 0.10			# propeller diameter (m)
 
-eta_T = 0.95	# thrust deduction factor
+eta_T = 0.95		# thrust deduction factor
+eta_T_surf = 0.6	# surfaced thrust deduction factor
 
 w_fs = 0.15		# fully submerged wake factor
 w_f = 0.05 		# foiling wake factor
-
-###################################
-# Motor Parameters
-
-KV = 150		# motor speed constant (RPM/V)
-Kt = 0.0689		# motor torque constant (Nm/A)
-I0 = 2.7		# no load current (A)
-R0 = 0.013		# motor resistance (Ω)
 
 ##################################################################
 # Point Locations (m) (fixed axis X front, Y right, Z down)
 ###################################
 # Miscellaneous (keel transom frame)
 
-CM_kt = (0.6, 0, -0.12)		# body frame origin
+CM_kt = (0.73, 0, -0.12)		# body frame origin
 ra_kt = (-0.1, 0, 0)			# rear axle frame origin
 r_surf_kt = (0.70, 0, -0.24)	# surfaced forces center
 

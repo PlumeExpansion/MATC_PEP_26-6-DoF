@@ -58,55 +58,39 @@ def load_constants(path_constants, debug=False):
 	return constants
 
 def load_volume_area_data(path_npz):
+	return load_npz_4D(path_npz, 'grid_results','z_range','pitch_range','roll_range')
+
+def load_propulsor_data(path_npz):
+	return load_npz_4D(path_npz, 'grid_results','rho_range','vA_range','V_range')
+
+def load_npz_4D(path_npz, w, x,y,z):
 	data = np.load(path_npz)
-	range_z = data['z_range']
-	range_pitch = data['pitch_range']
-	range_roll = data['roll_range']
-	grid_results = data['grid_results']
+	range_x = data[x]
+	range_y = data[y]
+	range_z = data[z]
+	grid_w = data[w]
 	
+	len_x = len(range_x)
+	len_y = len(range_y)
 	len_z = len(range_z)
-	len_pitch = len(range_pitch)
-	len_roll = len(range_roll)
 
+	res_x = (max(range_x) - min(range_x))/len_x
+	res_y = (max(range_y) - min(range_y))/len_y
 	res_z = (max(range_z) - min(range_z))/len_z
-	res_pitch = (max(range_pitch) - min(range_pitch))/len_pitch
-	res_roll = (max(range_roll) - min(range_roll))/len_roll
 	
+	i_max_x = len(range_x) - 2
+	i_max_y = len(range_y) - 2
 	i_max_z = len(range_z) - 2
-	i_max_pitch = len(range_pitch) - 2
-	i_max_roll = len(range_roll) - 2
 
-	min_base = np.array([min(range_z), min(range_pitch), min(range_roll)])
-	res = np.array([res_z, res_pitch, res_roll])
+	min_base = np.array([min(range_x), min(range_y), min(range_z)])
+	res = np.array([res_x, res_y, res_z])
 
-	return grid_results, (range_z,range_pitch,range_roll, res_z,res_pitch,res_roll, 
-					   i_max_z,i_max_pitch,i_max_roll, min_base, res)
+	return grid_w, (range_x,range_y,range_z, res_x,res_y,res_z, 
+					   i_max_x,i_max_y,i_max_z, min_base,res)
 
 @njit(cache=True)
 def query_volume_area(volume_area, query, r_CM):
-	z, pitch, roll = query
-	grid_results = volume_area[0]
-	(range_z,range_pitch,range_roll, res_z,res_pitch,res_roll, 
-  		i_max_z,i_max_pitch,i_max_roll, min_base, res) = volume_area[1]
-	i_z, i_pitch, i_roll = ((query-min_base)/res).astype(np.int32)
-
-	i_z = clip(i_z, 0, i_max_z)
-	i_pitch = clip(i_pitch, 0, i_max_pitch)
-	i_roll = clip(i_roll, 0, i_max_roll)
-
-	d_z = (z - range_z[i_z]) / res_z
-	d_pitch = (pitch - range_pitch[i_pitch]) / res_pitch
-	d_roll = (roll - range_roll[i_roll]) / res_roll
-
-	c00 = grid_results[i_z][i_pitch][i_roll]*(1-d_z) + grid_results[i_z+1][i_pitch][i_roll]*d_z
-	c01 = grid_results[i_z][i_pitch][i_roll+1]*(1-d_z) + grid_results[i_z+1][i_pitch][i_roll+1]*d_z
-	c10 = grid_results[i_z][i_pitch+1][i_roll]*(1-d_z) + grid_results[i_z+1][i_pitch+1][i_roll]*d_z
-	c11 = grid_results[i_z][i_pitch+1][i_roll+1]*(1-d_z) + grid_results[i_z+1][i_pitch+1][i_roll+1]*d_z
-
-	c0 = c00*(1-d_pitch) + c10*d_pitch
-	c1 = c01*(1-d_pitch) + c11*d_pitch
-
-	output = c0*(1-d_roll) + c1*d_roll
+	output = trilinear_interp(volume_area, query)
 
 	vol = output[0]
 	area = output[1]
@@ -116,11 +100,35 @@ def query_volume_area(volume_area, query, r_CM):
 	area_center = output[5:8] - r_CM
 	return vol, area, vol_center, area_center
 
+@njit(cache=True)
+def trilinear_interp(data, query):
+	x, y, z = query
+	grid_w = data[0]
+	(range_x,range_y,range_z, res_x,res_y,res_z, 
+  		i_max_x,i_max_y,i_max_z, min_base,res) = data[1]
+	
+	i_x, i_y, i_z = ((query-min_base)/res).astype(np.int32)
+
+	i_x = clip(i_x, 0, i_max_x)
+	i_y = clip(i_y, 0, i_max_y)
+	i_z = clip(i_z, 0, i_max_z)
+
+	d_x = (x - range_x[i_x]) / res_x
+	d_y = (y - range_y[i_y]) / res_y
+	d_z = (z - range_z[i_z]) / res_z
+
+	c00 = grid_w[i_x][i_y][i_z]*(1-d_x) + grid_w[i_x+1][i_y][i_z]*d_x
+	c01 = grid_w[i_x][i_y][i_z+1]*(1-d_x) + grid_w[i_x+1][i_y][i_z+1]*d_x
+	c10 = grid_w[i_x][i_y+1][i_z]*(1-d_x) + grid_w[i_x+1][i_y+1][i_z]*d_x
+	c11 = grid_w[i_x][i_y+1][i_z+1]*(1-d_x) + grid_w[i_x+1][i_y+1][i_z+1]*d_x
+
+	c0 = c00*(1-d_y) + c10*d_y
+	c1 = c01*(1-d_y) + c11*d_y
+
+	return c0*(1-d_z) + c1*d_z
+
 def load_aero_coeffs(path):
 	return load_periodic_1D_data(path, ['Alpha','CL','CD'], 'aerodynamic coefficients')
-
-def load_thrust_torque_coeffs(path):
-	return load_periodic_1D_data(path, ['Beta','C_T^*','C_Q^*'], 'propulsor')
 
 def load_periodic_1D_data(path_data, cols, data_name):
 	df = pd.read_csv(path_data, sep=r'\s+')
