@@ -57,15 +57,15 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'r': sim.model.r = np.array([value['x'],value['y'],value['z']/100])
 					elif state == 'speed': sim.base_speed = value
 					elif state == 'input':
-						psi_ra = -value['x']*np.pi/180
-						V = value['y']
+						psi_ra = -value['x']*sim.model.psi_ra_max*np.pi/180
+						V = value['y']*sim.model.V_max
 						if sim.is_running():
 							sim.input_queued = True
 							sim.psi_ra = psi_ra
 							sim.V = V
 						else:
 							sim.model.psi_ra = psi_ra
-							sim.V = V
+							sim.model.propulsor.V = V
 					else: print(f'WARNING: unknown state set request - {state} = {value}')
 					if not sim.is_running():
 						sim.model.calc_state_dot()

@@ -17,6 +17,9 @@ Iyz = 0
 
 A_surf = 0.1065 	# surfaced frontal area (m^2)
 
+psi_ra_max = 15		# maximum rudder deflection (deg)
+V_max = 44.4		# maximum input voltage (V)
+
 ###################################
 # Propeller Parameters
 

@@ -9,7 +9,7 @@ class Simulation:
 	def __init__(self, model: Model_6DoF):
 		self.base_speed = 1
 		self.speed = 1
-		self.speed_restore = 0.7
+		self.speed_restore = 0.2
 		self.speed_boundary = 0.98
 
 		self.time_last = 0
@@ -22,12 +22,12 @@ class Simulation:
 				np.abs(state[1]) < 20,
 				np.abs(state[2]) < 20,
 
-				np.abs(state[3]) < 4*np.pi,
-				np.abs(state[4]) < 4*np.pi,
-				np.abs(state[5]) < 4*np.pi,
+				np.abs(state[3]) < 2*np.pi,
+				np.abs(state[4]) < 2*np.pi,
+				np.abs(state[5]) < 2*np.pi,
 
-				np.abs(state[6]) < 45/180*np.pi,
-				np.abs(state[7]) < 60/180*np.pi,
+				np.abs(state[6]) < 60/180*np.pi,
+				np.abs(state[7]) < 45/180*np.pi,
 				
 				np.abs(state[11]) < 3,
 			]
@@ -133,7 +133,9 @@ class Simulation:
 			'propulsor': {
 				'r_prop': self.model.propulsor.r_prop.tolist(), # type: ignore
 				'd': self.model.propulsor.d
-			}
+			},
+			'V_max': self.model.V_max,
+			'psi_ra_max': self.model.psi_ra_max
 		}
 		self.build_telem = json.dumps(self.__build_telem)
 

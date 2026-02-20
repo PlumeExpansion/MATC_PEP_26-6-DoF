@@ -112,13 +112,12 @@ export class UI {
 		});
 		simFolder.addBinding(this.controlStates, 'log_dt', { label: 'log(Δt)', min: -3, max: -1 });
 		this.stepBtn = simFolder.addButton({ title: 'Step' }).on('click', () => this.callbacks.onStep());
-		this.resetBtn = simFolder.addButton({ title: 'Reset' }).on('click', () => this.callbacks.onReset());
 		this.reinitBtn = simFolder.addButton({ title: 'Re-initialize' }).on('click', () => this.callbacks.onReinit());
 		// -- Scene --
 		const sceneFolder = this.leftPane.addFolder({ title: 'Scene' });
 		sceneFolder.addButton({ title: 'Light Helpers' }).on('click', () => this.callbacks.onToggleLightHelpers());
 		// -- STL --
-		const stlFolder = sceneFolder.addFolder({ title: 'STL Models' });
+		const stlFolder = sceneFolder.addFolder({ title: 'STL' });
 		stlFolder.addButton({ title: 'Hull' }).on('click', () => this.callbacks.onToggleHull());
 		stlFolder.addButton({ title: 'Wings' }).on('click', () => this.callbacks.onToggleWings());
 		stlFolder.addButton({ title: 'Rear Wings' }).on('click', () => this.callbacks.onToggleRearWings());
@@ -133,7 +132,7 @@ export class UI {
 		// --- Right Pane ---
 		const rightTabs = this.rightPane.addTab({
 			pages: [
-				{title: 'Model'},
+				{title: 'Visuals'},
 				{title: 'States'}
 			]
 		})
@@ -172,8 +171,9 @@ export class UI {
 		// --- States Tab ---
 		this.syncBtn = rightTabs.pages[1].addButton({ title: 'Sync States' }).on('click', () => {
 			this.syncControlStates();
-			this.syncInputs();
+			this.syncInputs(this.constants);
 		})
+		this.resetBtn = rightTabs.pages[1].addButton({ title: 'Reset' }).on('click', () => this.callbacks.onReset());
 		// -- U --
 		const UFolder = rightTabs.pages[1].addFolder({ title: 'Velocities' });
 		UFolder.addBinding(this.simStates.U, 'u', { label: 'u [m/s]', readonly: true });
@@ -228,11 +228,11 @@ export class UI {
 		propFolder.addBinding(this.simStates, 'psi_ra', { label: 'ψ-ra [°]', readonly: true });
 		propFolder.addBinding(this.simStates, 'V', { label: 'V [V]', readonly: true });
 		propFolder.addBinding(this.controlStates, 'input', { 
-			label: '<-ψ-ra,V>', 
+			label: '<%ψ,%V>', 
 			picker: 'inline',
 			expanded: true,
-			x: { min: -15, max: 15 },
-			y: { min: -44.4, max: 44.4, inverted: true }
+			x: { min: -1, max: 1 },
+			y: { min: -1, max: 1, inverted: true }
 		}).on('change', ev => this.callbacks.onStateChange('input', ev.value));
 	}
 	updateSocketStatus(status) {
@@ -286,8 +286,8 @@ export class UI {
 		this.rightPane.refresh();
 	}
 	syncInputs() {
-		this.controlStates.input.x = -this.simStates.psi_ra;
-		this.controlStates.input.y = this.simStates.V;
+		this.controlStates.input.x = -this.simStates.psi_ra / this.constants.psi_ra_max;
+		this.controlStates.input.y = this.simStates.V / this.constants.V_max;
 
 		this.rightPane.refresh();
 	}

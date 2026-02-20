@@ -120,6 +120,7 @@ bodyGroup.add(hull, wingRoots.get('0'), wingRoots.get('1'));
 raGroup.add(propulsor);
 const components = [hull, propulsor, wingRoots.get('0'), wingRoots.get('1'), waterplane];
 
+ui.constants = constants;
 ui.callbacks.onToggleHullAxes = () => hull.toggleAxes();
 ui.callbacks.onToggleFoilAxes = () => {
 	panels.forEach(panel => panel.toggleAxes());
@@ -131,7 +132,10 @@ ui.callbacks.onToggleForces = () => components.forEach(c => c.toggleForces());
 ui.callbacks.onToggleMoments = () => components.forEach(c => c.toggleMoments());
 ui.callbacks.onToggleSubmerged = () => panels.forEach(p => p.toggleSubmerged());
 ui.callbacks.onToggleSurfaced = () => panels.forEach(p => p.toggleSurfaced());
-ui.callbacks.onToggleSubmergence = () => panels.forEach(p => p.toggleSubmergence());
+ui.callbacks.onToggleSubmergence = () => {
+	panels.forEach(p => p.toggleSubmergence());
+	propulsor.toggleSubmergence();
+};
 
 function build(msg) {
 	constants.r_CM.fromArray(msg['r_CM']);
@@ -159,6 +163,9 @@ function build(msg) {
 	}
 	hull.build(msg['hull']);
 	propulsor.build(msg['propulsor']);
+
+	constants.V_max = msg['V_max'];
+	constants.psi_ra_max = msg['psi_ra_max'];
 
 	ui.setBuildTelem(msg);
 
