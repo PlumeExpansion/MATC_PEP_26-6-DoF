@@ -46,7 +46,7 @@ export class Panel extends THREE.Group {
 		this.norm = new THREE.Vector3().subVectors(this.r_LE_1, this.r_LE_2)
 			.cross(new THREE.Vector3().copy(this.r_TE_2).sub(this.r_LE_2)).multiplyScalar(this.panelId.includes('L')? -1 : 1).normalize();
 	}
-	syncTelem(telem,Cb_ra) {
+	syncTelem(telem, Cra_b) {
 		this.alpha = telem['alpha'];
 		this.beta = telem['beta'];
 		this.f = telem['f'];
@@ -77,10 +77,9 @@ export class Panel extends THREE.Group {
 		this.force.position.copy(this.r_qc_fC);
 		this.moment.position.copy(this.r_qc_fC);
 
-		this.submergence.setPoint(this.norm, this.f*this.config.submergenceScale);
 		if (this.rear) {
-			this.force.setPoint(this.F.clone().applyMatrix3(Cb_ra));
-			this.moment.setPoint(this.M.clone().applyMatrix3(Cb_ra));
+			this.force.setPoint(this.F.clone().applyMatrix3(Cra_b));
+			this.moment.setPoint(this.M.clone().applyMatrix3(Cra_b));
 		} else {
 			this.force.setPoint(this.F.clone());
 			this.moment.setPoint(this.M.clone());

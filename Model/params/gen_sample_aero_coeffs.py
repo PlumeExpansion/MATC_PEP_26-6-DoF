@@ -19,6 +19,8 @@ def gen_sample_drag_coeff(alpha, CD0, CDtrans, alpha_trans, CDmax):
 	CD = CD1*(1-f) + f*CD2
 	return CD
 
+# Blended Lift & Drag: https://www.desmos.com/calculator/qsqemsi5d9
+
 def main():
 	FoilParams = namedtuple('FoilParams', ['id','CL0','CLalpha','alpha_crit','CLrec','CD0','CDtrans','alpha_trans','CDmax'])
 	alpha = linspace(-180, 180, 360)
@@ -33,14 +35,15 @@ def main():
 	wrv = FoilParams('wing_rv',	0.0, 0.1, 6, 1,		0.007, 0.07, 8, 2)		# (goe445-il)
 	wrs = FoilParams('wing_rs',	0.0, 0.1, 6, 1,		0.007, 0.07, 8, 2)		# (goe445-il)
 	
-	h = FoilParams('hull',		0.0, 0.06, 5, 1,	0.1, 0.14, 12, 1.5)		# streamlined half body
+	h = FoilParams('hull',		0.25, 0.06, 5, 1,	0.1, 0.14, 12, 1.5)		# streamlined half body
 	s = FoilParams('surf',		0.0, 0.06, 5, 1,	0.05, 0.06, 10, 1.5)	# streamlined body
 
 	root = './sample aero coeffs/'
 	export = True
 	plot = False
 
-	foils = [wr,wv,w1,w2,w3, wr1,wr2,wrv,wrs,h,s]
+	# foils = [wr,wv,w1,w2,w3, wr1,wr2,wrv,wrs,h,s]
+	foils = [h]
 	for params in foils:
 		CL = gen_sample_lift_coeff(alpha, params.CL0, params.CLalpha, params.alpha_crit, params.CLrec)
 		CD = gen_sample_drag_coeff(alpha, params.CD0, params.CDtrans, params.alpha_trans, params.CDmax)

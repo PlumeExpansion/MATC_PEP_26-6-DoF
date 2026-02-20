@@ -33,7 +33,7 @@ w_f = 0.05 		# foiling wake factor
 ###################################
 # Miscellaneous (keel transom frame)
 
-CM_kt = (0.73, 0, -0.12)		# body frame origin
+CM_kt = (0.50, 0, -0.12)		# body frame origin
 ra_kt = (-0.1, 0, 0)			# rear axle frame origin
 r_surf_kt = (0.70, 0, -0.24)	# surfaced forces center
 

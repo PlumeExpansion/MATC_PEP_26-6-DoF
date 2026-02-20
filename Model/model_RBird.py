@@ -217,7 +217,7 @@ class Model_6DoF:
 
 	def calc_state_dot(self):
 		(self.Cb0, self.C0b, self.Cb_ra, self.Cra_b, self.C0_ra, 
-   			self.r_ra_world) = calc_base_rot_mats(self.Phi, self.psi_ra, self.r_ra)
+   			self.r_ra_world) = calc_base_rot_mats(self.Phi, self.psi_ra, self.r_ra, self.r)
 		self.query = calc_base_query(self.C0b, self.r_CM, self.r, self.Phi)
 
 		F, M = zero3.copy(), zero3.copy()
@@ -251,6 +251,7 @@ class Model_6DoF:
 		self.U = state[0:3]
 		self.omega = state[3:6]
 		self.Phi = state[6:9]
+		self.Phi[2] %= 2*np.pi
 		self.r = state[9:12]
 	
 	def get_input(self):

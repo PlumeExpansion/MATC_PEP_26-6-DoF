@@ -8,6 +8,7 @@ import { Hull } from "./components/hull.js";
 import { Panel } from "./components/panel.js";
 import { WingRoot } from "./components/wing_root.js";
 import { Propulsor } from "./components/propulsor.js";
+import { Waterplane } from "./waterplane.js";
 import * as utils from './utils.js';
 
 // --- Scene Setup ---
@@ -19,7 +20,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const scene = new THREE.Scene();
 
 let aspectRatio = window.innerWidth / window.innerHeight;
-const camera = new THREE.PerspectiveCamera(35, aspectRatio,0.1,200);
+const camera = new THREE.PerspectiveCamera(35, aspectRatio,0.1,500);
 
 // const aspectRatio = window.innerWidth / window.innerHeight;
 // const camera = new THREE.OrthographicCamera(
@@ -68,14 +69,14 @@ ui.callbacks.onRefocusCamera = () => {
 }
 
 // --- Waterplane Grid ---
-const grid = new THREE.GridHelper(20, 10);
-grid.rotation.x = Math.PI / 2;
-scene.add(grid);
+const waterplane = new Waterplane(ui.sceneConfig, 20, 20, 0.01, 2);
+scene.add(waterplane);
 
 // --- STL Models ---
 const bodyGroup = new THREE.Group();
 const raGroup = new THREE.Group();
 bodyGroup.add(raGroup);
+bodyGroup.oldPos = new THREE.Vector3();
 scene.add(bodyGroup);
 
 const loader = new STLLoader();
@@ -95,6 +96,9 @@ ui.callbacks.onToggleWings = () => wingMesh.visible = !wingMesh.visible;
 ui.callbacks.onToggleRearWings = () => rearWingMesh.visible = !rearWingMesh.visible;
 ui.callbacks.onStlOpacity = () => material.opacity = ui.sceneConfig.stlOpacity;
 
+ui.callbacks.onToggleGrid = () => waterplane.toggleGrid();
+ui.callbacks.onToggleWaterplane = () => waterplane.toggleWaterplane();
+
 // --- Components ---
 const constants = {
 	r_CM: new THREE.Vector3(),
@@ -103,7 +107,7 @@ const constants = {
 const states = {
 	r: new THREE.Vector3(),
 	C0b: new THREE.Matrix3(),
-	Cb_ra: new THREE.Matrix3()
+	Cra_b: new THREE.Matrix3()
 }
 const panels = new Map();
 const wingRoots = new Map([
@@ -114,7 +118,7 @@ const hull = new Hull(ui.sceneConfig);
 const propulsor = new Propulsor(ui.sceneConfig);
 bodyGroup.add(hull, wingRoots.get('0'), wingRoots.get('1'));
 raGroup.add(propulsor);
-const components = [hull, propulsor, wingRoots.get('0'), wingRoots.get('1')];
+const components = [hull, propulsor, wingRoots.get('0'), wingRoots.get('1'), waterplane];
 
 ui.callbacks.onToggleHullAxes = () => hull.toggleAxes();
 ui.callbacks.onToggleFoilAxes = () => {
@@ -156,6 +160,8 @@ function build(msg) {
 	hull.build(msg['hull']);
 	propulsor.build(msg['propulsor']);
 
+	ui.setBuildTelem(msg);
+
 	console.log('INFO: build successful');
 }
 
@@ -176,29 +182,41 @@ function telem(msg) {
 	ui.simStates.r.z = msg['r'][2]*100;
 	ui.simStates.psi_ra = msg['psi_ra']*180/Math.PI;
 	states.C0b.fromArray(msg['C0b']).transpose();
-	states.Cb_ra.fromArray(msg['Cb_ra']).transpose();
+	states.Cra_b.fromArray(msg['Cra_b']).transpose();
+	states.Cb_ra = states.Cra_b.clone().transpose();
 	
+	bodyGroup.oldPos.copy(bodyGroup.position)
 	bodyGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(states.C0b));
 	bodyGroup.position.copy(states.r);
 
 	raGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(states.Cb_ra));
 
-	for (const id in msg['panels']) panels.get(id).syncTelem(msg['panels'][id], states.Cb_ra);
+	for (const id in msg['panels']) panels.get(id).syncTelem(msg['panels'][id], states.Cra_b);
 	for (const id in msg['wing_roots']) wingRoots.get(id).syncTelem(msg['wing_roots'][id]);
 	hull.syncTelem(msg['hull']);
-	propulsor.syncTelem(msg['propulsor'], states.Cb_ra);
+	propulsor.syncTelem(msg['propulsor'], states.Cra_b);
 	
-	ui.simStates.epsilon = propulsor.epsilon;
+	ui.simStates.V = propulsor.V;
 	ui.simStates.I = propulsor.I;
 	ui.simStates.RPM = propulsor.n*60;
+	ui.simStates.speed = msg['speed'];
 	ui.updateSimulationStatus(msg['running']);
 	
 	if (syncFlag) {
 		ui.syncControlStates();
+		ui.syncInputs();
 		syncFlag = false;
 	}
 
+	if (ui.sceneConfig.cameraFollow) camera.position.sub(bodyGroup.oldPos.sub(bodyGroup.position));
+
+	waterplane.updateGrid(states.r);
 	components.forEach(c => c.syncVisuals());
+}
+
+ui.callbacks.onPause = () => {
+	ui.syncControlStates();
+	ui.syncInputs();
 }
 
 // --- SocketManager ---
@@ -220,7 +238,9 @@ const socket = new SocketManager(
 );
 socket.connect(ui.socketParams.url);
 ui.callbacks.onConnect = (url) => socket.connect(url);
-ui.callbacks.onStateChange = (state, value) => socket.send({ type: 'set', state: state, value: value });
+ui.callbacks.onStateChange = (state, value) => {
+	socket.send({ type: 'set', state: state, value: value });
+};
 ui.callbacks.onToggleRun = () => socket.send({ type: 'sim' });
 ui.callbacks.onStep = () => {
 	syncFlag = true;
@@ -230,14 +250,22 @@ ui.callbacks.onReset = () => {
 	syncFlag = true;
 	socket.send({ type: 'reset' });
 };
+ui.callbacks.onReinit = () => {
+	syncFlag = true;
+	socket.send({ type: 'reinit' });
+}
 
-// // --- Body Axes ---
-const bodyAxes = new utils.Axes();
-bodyGroup.add(bodyAxes);
+// --- Coordinate Frame ---
+const fixedFrame = new utils.Axes();
+scene.add(fixedFrame);
+const bodyFrame = new utils.Axes();
+bodyGroup.add(bodyFrame);
+const rearAxleFrame = new utils.Axes();
+raGroup.add(rearAxleFrame);
 
-// --- Fixed Axes ---
-const fixedAxes = new utils.Axes();
-scene.add(fixedAxes);
+ui.callbacks.onToggleFixedFrame = () => fixedFrame.visible = !fixedFrame.visible;
+ui.callbacks.onToggleBodyFrame = () => bodyFrame.visible = !bodyFrame.visible;
+ui.callbacks.onToggleRearAxleFrame = () => rearAxleFrame.visible = !rearAxleFrame.visible;
 
 window.addEventListener('resize', () => {
 	camera.aspect = window.innerWidth / window.innerHeight;
@@ -246,8 +274,13 @@ window.addEventListener('resize', () => {
 });
 
 const renderloop = () => {
+	if (ui.sceneConfig.cameraTarget || ui.sceneConfig.cameraFollow) controls.target.copy(bodyGroup.position);
 	controls.update();
-	renderer.render(scene, camera);
+	try {
+		renderer.render(scene, camera);
+	} catch (error) {
+		console.error("ERROR: render error:", error);
+	}
 	window.requestAnimationFrame(renderloop);
 };
 

@@ -101,7 +101,7 @@ def calc_base_query(C0b, r_CM, r_world, Phi):
 	return np.array([z, pitch, roll])
 
 @njit(cache=True)
-def calc_base_rot_mats(Phi, psi_ra, r_ra):
+def calc_base_rot_mats(Phi, psi_ra, r_ra, r):
 	phi = Phi[0]
 	theta = Phi[1]
 	psi = Phi[2]
@@ -121,7 +121,7 @@ def calc_base_rot_mats(Phi, psi_ra, r_ra):
 	])
 	Cra_b = np.transpose(Cb_ra)
 	C0_ra = C0b @ Cb_ra
-	r_ra_world = C0b @ r_ra
+	r_ra_world = C0b @ r_ra + r
 	return Cb0, C0b, Cb_ra, Cra_b, C0_ra, r_ra_world
 
 @njit(cache=True)
