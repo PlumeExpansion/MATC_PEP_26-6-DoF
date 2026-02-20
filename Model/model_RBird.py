@@ -102,6 +102,9 @@ class Model_6DoF:
 		self.r_CM = self.get_const('r_CM_kt')
 		self.r_ra = self.get_const('r_ra_kt') - self.r_CM
 
+		self.psi_ra_max = self.get_const('psi_ra_max')
+		self.V_max = self.get_const('V_max')
+
 	def get_const(self, key, pos_check=False):
 		if key in self.constants:
 			self.accessed_constants.add(key)
@@ -212,7 +215,15 @@ class Model_6DoF:
 		except Exception as e:
 			print(f'ERROR: failed to load propulsor data - {e}')
 			return 1
-		self.propulsor = Propulsor(self, prop_data)
+		propulsor_d = np.load(path_propulsor)['d']
+		propeller_d = self.get_const('d')
+		if propulsor_d != propeller_d:
+			print(f'ERROR: propeller/propulsor diameter mismatch - {self.get_const('d')} vs {propeller_d}')
+		try:
+			self.propulsor = Propulsor(self, prop_data)
+		except Exception as e:
+			print(f'ERROR: failed to make propulsor - {e}')
+			return 1
 		return 0
 
 	def calc_state_dot(self):

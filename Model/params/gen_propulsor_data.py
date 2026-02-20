@@ -61,7 +61,7 @@ def main():
 
 	if export:
 		try:
-			np.savez(output_path, grid_results=table, rho_range=rho_range, vA_range=vA_range, V_range=V_range)
+			np.savez(output_path, grid_results=table, rho_range=rho_range, vA_range=vA_range, V_range=V_range, d=d)
 			print(f'INFO: Successfully exported to "{output_path}"')
 		except Exception as e:
 			print(f'ERROR: Failed to export - {e}')

@@ -18,10 +18,10 @@ class Hull:
 		self.r_surf = self.model.get_const('r_surf_kt') - self.model.r_CM
 
 		disp0 = self.model.m / self.model.rho
-		sol = root_scalar(lambda z: query_volume_area(vol_area_data, np.array([z,0,0]), self.model.r_CM)[0] - disp0, bracket=[0,0.2], method='brentq')
+		sol = root_scalar(lambda z: query_volume_area(self.vol_area_data, np.array([z,0,0]), self.model.r_CM)[0] - disp0, bracket=[0,0.2], method='brentq')
 		if sol.converged:
 			self.z0 = sol.root
-			self.area0 = query_volume_area(vol_area_data, np.array([self.z0,0,0]), self.model.r_CM)[1]
+			self.area0 = query_volume_area(self.vol_area_data, np.array([self.z0,0,0]), self.model.r_CM)[1]
 		else:
 			raise Exception(f'initial waterline failed to converge - {sol.flag}')
 	
