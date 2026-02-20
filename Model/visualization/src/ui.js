@@ -104,6 +104,17 @@ export class UI {
 		const simFolder = this.leftPane.addFolder({ title: 'Simulation' });
 		simFolder.addBinding(this.simStates, 'rate', { readonly: true });
 		simFolder.addBinding(this.controlStates, 'rate', { label: 'target rate', min: 0.1, max: 1 }).on('change', ev => this.callbacks.onStateChange('speed', ev.value))
+		this.methodList = simFolder.addBlade({
+			view: 'list',
+			label: 'method',
+			options: [
+				{ text: 'RK45', value: 'RK45' },
+				{ text: 'RK23', value: 'RK23' },
+				{ text: 'Radau', value: 'Radau' },
+				{ text: 'BDF', value: 'BDF' },
+			],
+			value: 'RK45'
+		}).on('change', ev => this.callbacks.onStateChange('method', ev.value));
 		this.runBtn = simFolder.addButton({ title: 'Run' }).on('click', () => {
 			this.runBtn.disabled = true;
 			this.stepBtn.disabled = true;
@@ -252,6 +263,7 @@ export class UI {
 		this.omegaControl.disabled = disabled;
 		this.PhiControl.disabled = disabled;
 		this.rControl.disabled = disabled;
+		this.methodList.disabled = disabled;
 	}
 	setTelem(msg) {
 		this.telem.raw = msg;
@@ -262,6 +274,9 @@ export class UI {
 		this.telem.propulsor = JSON.stringify(msg['propulsor'], this.telemFunc, 2);
 		const { hull, panels, wing_roots, propulsor, type, ...otherProperties } = msg;
 		this.telem.misc = JSON.stringify(otherProperties, this.telemFunc, 2);
+	}
+	setMethod(method) {
+		this.methodList.value = method;
 	}
 	setBuildTelem(msg) {
 		this.telem.build = JSON.stringify(msg, this.telemFunc, 2);

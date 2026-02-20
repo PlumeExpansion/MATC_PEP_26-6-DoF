@@ -56,6 +56,9 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'Phi': sim.model.Phi = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'r': sim.model.r = np.array([value['x'],value['y'],value['z']/100])
 					elif state == 'rate': sim.base_rate = value
+					elif state == 'method':
+						sim.method = value
+						print(f'INFO: setting integration method to {value}')
 					elif state == 'input':
 						psi_ra = -value['x']*sim.model.psi_ra_max
 						V = value['y']*sim.model.V_max
@@ -104,8 +107,8 @@ async def handler(socket: websockets.ServerConnection):
 					sim.set_telemetry()
 
 					for socket in sockets:
-						socket.send(sim.build_telem)
-						socket.send(sim.telem)
+						await socket.send(sim.build_telem)
+						await socket.send(sim.telem)
 				else:
 					print(f'WARNING: unknown data received - {data}')
 			except Exception as e:
@@ -133,7 +136,7 @@ async def simulation_loop():
 				if sim.is_running() or controller:
 					sim.model.calc_state_dot()
 					sim.set_telemetry()
-					
+
 					await broadcast_telem()
 			await asyncio.sleep(1/loop_rate)
 	except asyncio.CancelledError:
@@ -163,7 +166,7 @@ async def controller_loop():
 
 			reverse = controller.get_button(7)
 			
-			psi_ra = yaw*sim.model.psi_ra_max
+			psi_ra = -yaw*sim.model.psi_ra_max
 			V = (-1 if reverse==1 else 1)*throttle*sim.model.V_max
 			if sim.is_running():
 				sim.input_queued = True

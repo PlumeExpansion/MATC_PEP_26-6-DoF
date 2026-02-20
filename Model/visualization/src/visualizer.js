@@ -210,6 +210,7 @@ function telem(msg) {
 	ui.simStates.I = propulsor.I;
 	ui.simStates.RPM = propulsor.n*60;
 	ui.simStates.rate = msg['rate'];
+	ui.setMethod(msg['method'])
 	ui.updateSimulationStatus(msg['running']);
 	
 	if (syncFlag) {

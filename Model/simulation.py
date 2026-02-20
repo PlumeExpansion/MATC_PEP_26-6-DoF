@@ -15,6 +15,8 @@ class Simulation:
 		self.time_last = 0
 		self.pause()
 
+		self.method = 'RK45'
+
 		self.set_model(model)
 		def check_state(t, state):
 			criterion = [
@@ -84,7 +86,7 @@ class Simulation:
 			return
 		self.rate = min(self.rate, self.base_rate)
 		res = solve_ivp(self.__get_state_dot, [0,dt*self.rate], self.model.get_state(), events=self.__check_state, 
-				  method='RK45')
+				  method=self.method)
 		if self.__running:
 			time_now = time.perf_counter()
 			solve_dt = time_now-self.time_last
@@ -101,7 +103,7 @@ class Simulation:
 			print(f'WARNING: integration failed, pausing')
 			self.pause()
 		elif res.status == 0:
-			print(f'INFO: {len(res.t)} timesteps taken')
+			print(f'INFO: {len(res.t)} timesteps taken with {self.method}')
 			self.model.set_state(res.y[:,-1])
 		else:
 			print(f'WARNING: integration aborted by state check, pausing')
@@ -239,4 +241,5 @@ class Simulation:
 
 		self.__telem['running'] = self.__running
 		self.__telem['rate'] = self.rate
+		self.__telem['method'] = self.method
 		self.telem = json.dumps(self.__telem)
