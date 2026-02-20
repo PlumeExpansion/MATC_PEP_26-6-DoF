@@ -3,3 +3,5 @@ __pycache__
 *.prof
 tempCodeRunnerFile.py
 .venv/
+/telem/
+telem_*.txt

@@ -16,6 +16,7 @@ class Simulation:
 		self.pause()
 
 		self.method = 'RK45'
+		self.valid_methods = ['RK45','RK23','Radau','BDF']
 
 		self.set_model(model)
 		def check_state(t, state):
@@ -42,7 +43,10 @@ class Simulation:
 		self.V = 0.0
 		self.psi_ra = 0.0
 
+		self.elapsed = 0
+
 	def set_model(self, model: Model_6DoF):
+		self.elapsed = 0
 		self.model = model
 		self.model.calc_state_dot()
 		self.__set_build_telem()
@@ -65,6 +69,7 @@ class Simulation:
 		return self.__running
 
 	def reset(self):
+		self.elapsed = 0
 		self.pause()
 		self.model.set_state(np.zeros(14))
 		self.model.set_input(np.zeros(2))
@@ -90,8 +95,8 @@ class Simulation:
 		if self.__running:
 			time_now = time.perf_counter()
 			solve_dt = time_now-self.time_last
+			self.time_last = time_now
 			if solve_dt >= dt:
-				self.time_last = time_now
 				self.rate = min(dt/solve_dt, self.rate)
 				print(f'WARNING: integration exceeded buffer time, slowing simulation rate to {self.rate:.2f}')
 			elif self.rate < self.rate_boundary * self.base_rate:
@@ -105,6 +110,7 @@ class Simulation:
 		elif res.status == 0:
 			print(f'INFO: {len(res.t)} timesteps taken with {self.method}')
 			self.model.set_state(res.y[:,-1])
+			self.elapsed += dt*self.rate
 		else:
 			print(f'WARNING: integration aborted by state check, pausing')
 			self.pause()
@@ -137,7 +143,9 @@ class Simulation:
 				'd': self.model.propulsor.d
 			},
 			'V_max': self.model.V_max,
-			'psi_ra_max': self.model.psi_ra_max
+			'psi_ra_max': self.model.psi_ra_max,
+			'methods': self.valid_methods,
+			'method': self.method,
 		}
 		self.build_telem = json.dumps(self.__build_telem)
 
@@ -145,7 +153,7 @@ class Simulation:
 		panel_telems = {}
 		for panel in self.model.panels.values():
 			panel_telems[panel.id] = {}
-		self.__telem = {
+		self.raw_telem = {
 			'type': 'telem',
 			'hull': {
 				'surf': {}
@@ -157,11 +165,31 @@ class Simulation:
 			},
 			'propulsor': {}
 		}
-		self.telem = json.dumps(self.__telem)
+		self.telem = json.dumps(self.raw_telem)
+
+		def format_dict(input_dict):
+			formatted_dict = {}
+			for k,v in input_dict.items():
+				if isinstance(v, dict):
+					v = format_dict(v)
+				elif isinstance(v, (list,np.ndarray)):
+					formatted_list = [f'{float(x):.2f}' for x in v]
+					if k.startswith('C'):
+						v = [f'[{", ".join(formatted_list[i:i+3])}]' for i in range(0, len(formatted_list), 3)]
+					else:
+						v = f'<{", ".join(formatted_list)}>'
+				elif isinstance(v, (int, float, np.number)):
+					v = f'{float(v):.4f}'
+				formatted_dict[k] = v
+			return formatted_dict
+		self.__format_dict = format_dict
+
+	def set_formatted_telem(self):
+		self.formatted_telem = json.dumps(self.__format_dict(self.raw_telem), indent=2)
 
 	def set_telemetry(self):
 		for panel in self.model.panels.values():
-			panel_telem = self.__telem['panels'][panel.id]
+			panel_telem = self.raw_telem['panels'][panel.id]
 			panel_telem['alpha'] = panel.alpha
 			panel_telem['beta'] = panel.beta
 			panel_telem['f'] = panel.f
@@ -175,7 +203,7 @@ class Simulation:
 			panel_telem['Cbw'] = panel.Cbw.flatten().tolist()
 		
 		hull = self.model.hull
-		hull_telem = self.__telem['hull']
+		hull_telem = self.raw_telem['hull']
 		hull_telem['alpha'] = hull.alpha
 		hull_telem['beta'] = hull.beta
 		hull_telem['area'] = hull.area
@@ -202,7 +230,7 @@ class Simulation:
 		surf_telem['Cbw'] = hull.Cbw_surf.flatten().tolist()
 
 		for wr in self.model.wing_roots:
-			wr_telem = self.__telem['wing_roots'][str(int(not wr.left))]
+			wr_telem = self.raw_telem['wing_roots'][str(int(not wr.left))]
 			wr_telem['alpha'] = wr.alpha
 			wr_telem['beta'] = wr.beta
 			wr_telem['area'] = wr.area
@@ -219,7 +247,7 @@ class Simulation:
 			wr_telem['Cbw'] = wr.Cbw.flatten().tolist()
 		
 		p = self.model.propulsor
-		p_telem = self.__telem['propulsor']
+		p_telem = self.raw_telem['propulsor']
 		p_telem['fp'] = p.fp
 		p_telem['V'] = p.V
 		p_telem['n'] = p.n
@@ -230,16 +258,16 @@ class Simulation:
 		p_telem['M'] = p.M.tolist()
 		p_telem['Cra_w'] = p.Cra_w.flatten().tolist()
 		
-		self.__telem['U'] = self.model.U.tolist()
-		self.__telem['omega'] = self.model.omega.tolist()
-		self.__telem['Phi'] = self.model.Phi.tolist()
-		self.__telem['r'] = self.model.r.tolist()
-		self.__telem['psi_ra'] = self.model.psi_ra
-		self.__telem['C0b'] = self.model.C0b.flatten().tolist()
-		self.__telem['Cra_b'] = self.model.Cra_b.flatten().tolist()
-		self.__telem['query'] = self.model.query.tolist()
+		self.raw_telem['U'] = self.model.U.tolist()
+		self.raw_telem['omega'] = self.model.omega.tolist()
+		self.raw_telem['Phi'] = self.model.Phi.tolist()
+		self.raw_telem['r'] = self.model.r.tolist()
+		self.raw_telem['psi_ra'] = self.model.psi_ra
+		self.raw_telem['C0b'] = self.model.C0b.flatten().tolist()
+		self.raw_telem['Cra_b'] = self.model.Cra_b.flatten().tolist()
+		self.raw_telem['query'] = self.model.query.tolist()
 
-		self.__telem['running'] = self.__running
-		self.__telem['rate'] = self.rate
-		self.__telem['method'] = self.method
-		self.telem = json.dumps(self.__telem)
+		self.raw_telem['running'] = self.__running
+		self.raw_telem['rate'] = self.rate
+		self.raw_telem['method'] = self.method
+		self.telem = json.dumps(self.raw_telem)

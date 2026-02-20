@@ -67,9 +67,9 @@ export class UI {
 					]
 					return lst
 				}
-				else {
+				else if (v.every(e => typeof e === 'number'))
 					return '<'+v.map(val => parseFloat(val).toFixed(4)).join(', ')+'>'
-				}
+				else return '['+v.join(', ')+']'
 			} else if (Object.prototype.toString.call(v) === '[object Number]') {
 				return parseFloat(v).toFixed(4);
 			}
@@ -101,29 +101,27 @@ export class UI {
 		this.targetBinding = camFolder.addBinding(this.sceneConfig, 'cameraTarget', { label: 'Camera Target', 
 			disabled: this.sceneConfig.cameraFollow });
 		// -- Simulation --
-		const simFolder = this.leftPane.addFolder({ title: 'Simulation' });
-		simFolder.addBinding(this.simStates, 'rate', { readonly: true });
-		simFolder.addBinding(this.controlStates, 'rate', { label: 'target rate', min: 0.1, max: 1 }).on('change', ev => this.callbacks.onStateChange('speed', ev.value))
-		this.methodList = simFolder.addBlade({
+		this.simFolder = this.leftPane.addFolder({ title: 'Simulation' });
+		this.simFolder.addBinding(this.simStates, 'rate', { readonly: true });
+		this.simFolder.addBinding(this.controlStates, 'rate', { label: 'target rate', min: 0.1, max: 1 }).on('change', ev => this.callbacks.onStateChange('speed', ev.value))
+		this.methodList = this.simFolder.addBlade({
 			view: 'list',
 			label: 'method',
 			options: [
-				{ text: 'RK45', value: 'RK45' },
-				{ text: 'RK23', value: 'RK23' },
-				{ text: 'Radau', value: 'Radau' },
-				{ text: 'BDF', value: 'BDF' },
+				{ text: 'N/A', value: 'N/A' }
 			],
-			value: 'RK45'
+			value: 'N/A'
 		}).on('change', ev => this.callbacks.onStateChange('method', ev.value));
-		this.runBtn = simFolder.addButton({ title: 'Run' }).on('click', () => {
+		this.runBtn = this.simFolder.addButton({ title: 'Run' }).on('click', () => {
 			this.runBtn.disabled = true;
 			this.stepBtn.disabled = true;
 			this.#disableControls(true);
 			this.callbacks.onToggleRun();
 		});
-		simFolder.addBinding(this.controlStates, 'log_dt', { label: 'log(Δt)', min: -3, max: -1 });
-		this.stepBtn = simFolder.addButton({ title: 'Step' }).on('click', () => this.callbacks.onStep());
-		this.reinitBtn = simFolder.addButton({ title: 'Re-initialize' }).on('click', () => this.callbacks.onReinit());
+		this.simFolder.addBinding(this.controlStates, 'log_dt', { label: 'log(Δt)', min: -3, max: -1 });
+		this.stepBtn = this.simFolder.addButton({ title: 'Step' }).on('click', () => this.callbacks.onStep());
+		this.simFolder.addButton({ title: 'Export' }).on('click', () => this.callbacks.onExport());
+		this.reinitBtn = this.simFolder.addButton({ title: 'Re-initialize' }).on('click', () => this.callbacks.onReinit());
 		// -- Scene --
 		const sceneFolder = this.leftPane.addFolder({ title: 'Scene' });
 		sceneFolder.addButton({ title: 'Light Helpers' }).on('click', () => this.callbacks.onToggleLightHelpers());
@@ -280,6 +278,19 @@ export class UI {
 	}
 	setBuildTelem(msg) {
 		this.telem.build = JSON.stringify(msg, this.telemFunc, 2);
+		const methods = []
+		msg['methods'].forEach(method => methods.push({ text: method, value: method }));
+		this.methodList.dispose();
+		this.methodList = this.simFolder.addBlade({
+			view: 'list',
+			label: 'method',
+			options: methods,
+			value: msg['method'],
+			index: 2
+		}).on('change', ev => {
+			if (ev.value != this.simStates.method)
+				this.callbacks.onStateChange('method', ev.value)
+		});
 	}
 	syncControlStates() {
 		this.controlStates.U.x = this.simStates.U.u;

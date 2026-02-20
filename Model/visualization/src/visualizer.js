@@ -210,6 +210,7 @@ function telem(msg) {
 	ui.simStates.I = propulsor.I;
 	ui.simStates.RPM = propulsor.n*60;
 	ui.simStates.rate = msg['rate'];
+	ui.simStates.method = msg['method'];
 	ui.setMethod(msg['method'])
 	ui.updateSimulationStatus(msg['running']);
 	
@@ -258,6 +259,7 @@ ui.callbacks.onStep = () => {
 	syncFlag = true;
 	socket.send({ type: 'step', dt: Math.pow(10,ui.controlStates.log_dt) });
 };
+ui.callbacks.onExport = () => socket.send({ type: 'export' })
 ui.callbacks.onReset = () => {
 	syncFlag = true;
 	socket.send({ type: 'reset' });
