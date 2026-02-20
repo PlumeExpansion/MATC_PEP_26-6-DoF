@@ -126,13 +126,15 @@ async def simulation_loop():
 	try:
 		while True:
 			# step and transmit telemetry
-			if sim.is_running() and sim.get_dt() > 1/step_rate:
-				sim.step()
-				
-				sim.model.calc_state_dot()
-				sim.set_telemetry()
-				
-				await broadcast_telem()
+			if sim.get_dt() > 1/step_rate:
+				if sim.is_running(): 
+					sim.step()
+
+				if sim.is_running() or controller:
+					sim.model.calc_state_dot()
+					sim.set_telemetry()
+					
+					await broadcast_telem()
 			await asyncio.sleep(1/loop_rate)
 	except asyncio.CancelledError:
 		print('INFO: simulation terminated')
@@ -157,10 +159,12 @@ async def controller_loop():
 			pygame.event.pump()
 
 			yaw = controller.get_axis(0)
-			throttle = controller.get_axis(1)
+			throttle = (1-controller.get_axis(2))/2
+
+			reverse = controller.get_button(7)
 			
 			psi_ra = yaw*sim.model.psi_ra_max
-			V = throttle*sim.model.V_max
+			V = (-1 if reverse==1 else 1)*throttle*sim.model.V_max
 			if sim.is_running():
 				sim.input_queued = True
 				sim.psi_ra = psi_ra # type: ignore
@@ -189,6 +193,7 @@ async def main():
 			print(f'\fINFO: terminating')
 		finally:
 			sim_task.cancel()
+			controller_task.cancel()
 			await controller_task
 			results = await asyncio.gather(sim_task, return_exceptions=True)
 			results = list(filter(None, results))
