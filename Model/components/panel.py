@@ -25,7 +25,7 @@ class Panel:
 
 		self.s = mag(projYZ @ (self.r_LE_1 - self.r_LE_2))
 
-		self.gamma = acos(unit(projYZ @ self.r_LE_1 - self.r_LE_2) @ -yHat)
+		self.gamma = acos(unit(projYZ @ (self.r_LE_1 - self.r_LE_2)) @ -yHat)
 		if self.gamma > pi/2:
 			self.gamma -= pi
 
@@ -79,7 +79,7 @@ def calc_submergence(rear, r_qc_1,r_qc_2, Cb_ra,C0_ra, r_ra,r_ra_world, r_world,
 		f = z_qc_2_world / (z_qc_2_world - z_qc_1_world)
 		f = clip(f, 0, 1)
 	cf = c2 + (c1-c2)*f
-	A = 1/2*(c1+cf)*s*f
+	A = 1/2*(c2+cf)*s*f
 	sC = s*f/3*(c2 + 2*cf)/(c2 + cf)
 	fC = sC/s
 	r_qc_fC = r_qc_2 + (r_qc_1 - r_qc_2)*fC

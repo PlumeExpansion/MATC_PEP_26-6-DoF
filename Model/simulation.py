@@ -128,7 +128,11 @@ class Simulation:
 				'r_LE_1': panel.r_LE_1.tolist(),
 				'r_LE_2': panel.r_LE_2.tolist(),
 				'r_TE_1': panel.r_TE_1.tolist(),
-				'r_TE_2': panel.r_TE_2.tolist()
+				'r_TE_2': panel.r_TE_2.tolist(),
+				'gamma': panel.gamma*180/np.pi,
+				's': panel.s,
+				'c1': panel.c1,
+				'c2': panel.c2,
 			}
 		self.__build_telem = {
 			'type': 'build',
