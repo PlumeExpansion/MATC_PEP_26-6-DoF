@@ -45,6 +45,7 @@ export class Panel extends THREE.Group {
 		this.rear = data['rear'];
 		this.norm = new THREE.Vector3().subVectors(this.r_LE_1, this.r_LE_2)
 			.cross(new THREE.Vector3().copy(this.r_TE_2).sub(this.r_LE_2)).multiplyScalar(this.panelId.includes('L')? -1 : 1).normalize();
+		this.submergence.setPoint(this.norm);
 	}
 	syncTelem(telem, Cra_b) {
 		this.alpha = telem['alpha'];

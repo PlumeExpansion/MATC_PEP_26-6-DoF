@@ -167,10 +167,12 @@ async def simulation_loop():
 		while True:
 			# step and transmit telemetry
 			if sim.get_dt() > 1/step_rate:
+				broadcast = controller is not None
 				if sim.is_running(): 
 					sim.step()
+					broadcast = True
 
-				if sim.is_running() or controller:
+				if broadcast:
 					sim.model.calc_state_dot()
 					sim.set_telemetry()
 

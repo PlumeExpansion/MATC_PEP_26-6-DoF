@@ -82,7 +82,7 @@ scene.add(bodyGroup);
 const loader = new STLLoader();
 const hullGeometryOrig = await loader.loadAsync('RBird_Hull_Remesh.stl');
 const wingGeometryOrig = await loader.loadAsync('Wing_Applied_Low_Poly.stl');
-const rearWingGeometryOrig = await loader.loadAsync('Rear_Wing_Applied_Low_Poly.stl');
+const rearWingGeometryOrig = await loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
 const material = new THREE.MeshPhongMaterial({color: 'white', transparent: true, opacity: ui.sceneConfig.stlOpacity });
 const hullMesh = new THREE.Mesh(hullGeometryOrig, material);
 const wingMesh = new THREE.Mesh(wingGeometryOrig, material);
@@ -145,10 +145,8 @@ function build(msg) {
 	constants.r_ra.fromArray(msg['r_ra']);
 	raGroup.position.copy(constants.r_ra);
 	
-	hullMesh.geometry = hullGeometryOrig.clone().translate(-constants['r_CM'].x, -constants['r_CM'].y, -constants['r_CM'].z);
-	wingMesh.geometry = wingGeometryOrig.clone().translate(-constants['r_CM'].x, -constants['r_CM'].y, -constants['r_CM'].z);
-	rearWingMesh.geometry = rearWingGeometryOrig.clone()
-		.translate(-constants['r_CM'].x-constants['r_ra'].x, -constants['r_CM'].y-constants['r_ra'].y, -constants['r_CM'].z-constants['r_ra'].z);
+	hullMesh.position.copy(constants.r_CM).multiplyScalar(-1);
+	wingMesh.position.copy(constants.r_CM).multiplyScalar(-1);
 	
 	panels.values().forEach(panel => panel.dispose());
 	components.splice(4, panels.values().length);
