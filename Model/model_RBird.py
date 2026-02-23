@@ -73,7 +73,7 @@ class Model_6DoF:
 			print(f'INFO: model intialized succesfully')
 		
 		if to_exit:
-			print(f', exiting')
+			print(f'INFO: exiting')
 			exit()
 
 		self.calc_state_dot()
@@ -211,14 +211,16 @@ class Model_6DoF:
 
 	def __make_propulsor(self, path_propulsor):
 		try:
-			prop_data = load_propulsor_data(path_propulsor)
+			propeller_d = self.get_const('d')
+			path = path_propulsor + f'_{int(propeller_d*100)}.npz'
+			propulsor_d = np.load(path)['d']
+			if propulsor_d != propeller_d:
+				print(f'ERROR: propeller/propulsor diameter mismatch - {propeller_d} vs {propulsor_d}')
+				return 1
+			prop_data = load_propulsor_data(path)
 		except Exception as e:
 			print(f'ERROR: failed to load propulsor data - {e}')
 			return 1
-		propulsor_d = np.load(path_propulsor)['d']
-		propeller_d = self.get_const('d')
-		if propulsor_d != propeller_d:
-			print(f'ERROR: propeller/propulsor diameter mismatch - {self.get_const('d')} vs {propeller_d}')
 		try:
 			self.propulsor = Propulsor(self, prop_data)
 		except Exception as e:
@@ -290,7 +292,7 @@ def calc_state_dot(F,M, Cb0,C0b, m,g, Ib,Ib_inv, U,omega,Phi):
 
 def make_default():
 	return Model_6DoF('params/model_constants.txt','params/hull_data_regular_grid.npz','params/left_wing_root_data_regular_grid.npz',
-			'params/sample aero coeffs/','params/propulsor data/FlipSky-85165-150_B4-70-14_10.npz')
+			'params/sample aero coeffs/','params/propulsor data/FlipSky-85165-150_B4-70-14')
 
 def main():
 	import cProfile
