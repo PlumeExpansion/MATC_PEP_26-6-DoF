@@ -131,6 +131,7 @@ export class DataManager {
 		this.simStates.r.y = msg['r'][1];
 		this.simStates.r.z = msg['r'][2]*100;
 		this.simStates.psi_ra = msg['psi_ra']*180/Math.PI;
+		this.simStates.rate = msg['rate'];
 		this.states.C0b.fromArray(msg['C0b']).transpose();
 		this.states.Cra_b.fromArray(msg['Cra_b']).transpose();
 		this.states.Cb_ra = this.states.Cra_b.clone().transpose();
@@ -163,6 +164,8 @@ export class DataManager {
 		this.controlStates.r.x = this.simStates.r.x;
 		this.controlStates.r.y = this.simStates.r.y;
 		this.controlStates.r.z = this.simStates.r.z;
+
+		this.controlStates.rate = this.simStates.rate;
 	}
 	syncInputs() {
 		this.controlStates.input.x = -this.simStates.psi_ra / this.constants.psi_ra_max;

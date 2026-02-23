@@ -76,6 +76,10 @@ async def step_sim(dt):
 
 	await broadcast_telem()
 
+async def sim_rate(rate):
+	print(f'INFO: setting simulation rate to {rate:.2f}')
+	sim.base_rate = rate
+
 async def set_method(input_method):
 	method = [m for m in sim.valid_methods if m.casefold() == input_method.casefold()]
 	if len(method) == 1:
@@ -117,7 +121,7 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'omega': sim.model.omega = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'Phi': sim.model.Phi = np.array([value['x'],value['y'],value['z']])*np.pi/180
 					elif state == 'r': sim.model.r = np.array([value['x'],value['y'],value['z']/100])
-					elif state == 'rate': sim.base_rate = value
+					elif state == 'rate': await sim_rate(value)
 					elif state == 'method': await set_method(value)
 					elif state == 'input':
 						psi_ra = -value['x']*sim.model.psi_ra_max
@@ -215,6 +219,8 @@ async def console_loop():
 			await step_sim(0.01)
 		elif cmd == 'method':
 			print(f'INFO: current integration method - {sim.method}')
+		elif cmd == 'rate':
+			print(f'INFO: current simulation rate & target rate - {sim.rate} & {sim.base_rate}')
 		elif cmd == 'time':
 			print(f'INFO: current elapsed time - {sim.elapsed:.4f}')
 		elif cmd == 'status':
@@ -229,6 +235,15 @@ async def console_loop():
 						await step_sim(dt)
 					else:
 						print(f'ERROR: invalid time step - {arg}')
+				except:
+					print(f'ERROR: nonfloat time step - {arg}')
+			elif cmd == 'rate':
+				try:
+					rate = float(arg)
+					if 0 <= rate <= 1:
+						await sim_rate(rate)
+					else:
+						print(f'ERROR: invalid simulation rate - {arg}')
 				except:
 					print(f'ERROR: nonfloat time step - {arg}')
 			elif cmd == 'method': await set_method(arg)

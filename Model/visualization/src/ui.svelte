@@ -48,11 +48,12 @@
 			<Folder title='Simulation' disabled={!isConnected}>
 				<Monitor value={dm.simStates.rate} label='rate' />
 				<Slider bind:value={dm.controlStates.rate} 
-					min={0} max={1} format={v => v.toFixed(1)} label='target'/>
+					min={0} max={1} format={v => v.toFixed(2)} label='target'
+					on:change={ev => dm.callbacks.onStateChange('rate', ev.detail)}/>
 				<List bind:value={dm.simStates.method} label='method' options={dm.methods} 
 					on:change={ev => {
 						if (ev.detail.value != dm.simStates.method)
-							dm.callbacks.onStateChange('method', ev.detail.value)
+							dm.callbacks.onStateChange('method', ev.detail)
 					}}/>
 				<Slider bind:value={dm.controlStates.dt} 
 					min={0.001} max={0.1} format={v => v.toFixed(3)} label='Δt'/>
