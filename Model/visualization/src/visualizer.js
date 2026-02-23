@@ -116,20 +116,22 @@ export class Visualizer {
 		};
 	}
 	async #loadSTL() {
-		const loader = new STLLoader();
-		this.hullGeometry = await loader.loadAsync('RBird_Hull_Remesh.stl');
-		this.wingGeometry = await loader.loadAsync('Wing_Applied_Low_Poly.stl');
-		this.rearWingGeometry = await loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
-		this.buoyGeometry = await loader.loadAsync('Buoy.stl');
-		this.motorGeometry = await loader.loadAsync('Low_Poly_FlipSky-85165-150.stl');
-		// this.propGeometry = await loader.loadAsync('Buoy.stl');
-		// TODO: load geometry on build
-		// TODO: finish motor mesh and position
+		this.loader = new STLLoader();
+		this.hullGeometry = await this.loader.loadAsync('RBird_Hull_Remesh.stl');
+		this.wingGeometry = await this.loader.loadAsync('Wing_Applied_Low_Poly.stl');
+		this.rearWingGeometry = await this.loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
+		this.buoyGeometry = await this.loader.loadAsync('Buoy.stl');
+		this.motorGeometry = await this.loader.loadAsync('Low_Poly_FlipSky-85165-150.stl');
+
 		this.stlMaterial = new THREE.MeshPhongMaterial({ transparent: true });
 		this.buoyMaterial = new THREE.MeshPhongMaterial();
+		
 		this.hullMesh = new THREE.Mesh(this.hullGeometry, this.stlMaterial);
 		this.wingMesh = new THREE.Mesh(this.wingGeometry, this.stlMaterial);
 		this.rearWingMesh = new THREE.Mesh(this.rearWingGeometry, this.stlMaterial);
+		this.motorMesh = new THREE.Mesh(this.motorGeometry, this.stlMaterial);
+		this.propMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.stlMaterial);
+		// this.propMesh = new THREE.Mesh(this.buoyGeometry, this.stlMaterial);
 		this.buoys = []
 		this.nearBuoyMesh = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
 		this.farBuoyMesh = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
@@ -138,9 +140,11 @@ export class Visualizer {
 			this.buoys.push(buoy);
 			this.scene.add(buoy);
 		}
-
+		this.motorMesh.rotateZ(-Math.PI/2);
+		this.propMesh.rotateY(Math.PI/2);
+		
 		this.bodyGroup.add(this.hullMesh, this.wingMesh);
-		this.raGroup.add(this.rearWingMesh);
+		this.raGroup.add(this.rearWingMesh, this.motorMesh, this.propMesh);
 		this.scene.add(this.nearBuoyMesh, this.farBuoyMesh);
 		this.dm.callbacks.onToggleHull = () => this.hullMesh.visible = !this.hullMesh.visible;
 		this.dm.callbacks.onToggleWings = () => this.wingMesh.visible = !this.wingMesh.visible;
@@ -186,7 +190,21 @@ export class Visualizer {
 		this.dm.callbacks.onBuoyVisuals();
 
 		this.renderloop = this.renderloop.bind(this);
+		window.requestAnimationFrame((nowMS) => this.lastMs = nowMS);
 		this.renderloop();
+	}
+	async buildPropeller() {
+		this.propMesh.geometry.dispose();
+		this.propGeometry = await this.loader.loadAsync(
+			`Propeller/Low_Poly_B4-70-14_${Math.round(this.propulsor.d*100)}.stl`);
+		// this.propGeometry = await this.loader.loadAsync(
+		// 	`Buoy.stl`);
+		// this.propGeometry = this.hullGeometry;
+		this.propMesh.geometry = this.propGeometry;
+		// this.propGeometry.computeBoundingSphere();
+		// this.propGeometry.computeBoundingBox();
+		// console.log(this.propMesh.position);
+		// console.log(this.propMesh.scale);
 	}
 	flashBuoy() {
 		if (this.buoyMaterial) {
@@ -194,10 +212,19 @@ export class Visualizer {
 			this.buoyMaterial.emissiveIntensity = intensity;
 		}
 	}
-	renderloop() {
+	rotateProp(dt) {
+		const rot = dt*this.dm.simStates.RPM/60*(2*Math.PI)*this.dm.simStates.rate;
+		if (!isNaN(rot)) this.propMesh.rotateZ(rot);
+		// console.log(this.propMesh.rotation);
+		// console.log(dt, this.dm.simStates.RPM/60*(2*Math.PI));
+	}
+	renderloop(nowMs) {
+		const dt = (nowMs - this.lastMs)/1000;
+		this.lastMs = nowMs;
 		if (this.dm.sceneConfig.cameraTrack == 'Body') this.controls.target.copy(this.bodyGroup.position);
 		this.controls.update();
 		this.flashBuoy();
+		this.rotateProp(dt);
 		try {
 			this.renderer.render(this.scene, this.camera);
 		} catch (error) {
@@ -210,7 +237,7 @@ export class Visualizer {
 
 		this.hullMesh.position.copy(this.dm.constants.r_CM).multiplyScalar(-1);
 		this.wingMesh.position.copy(this.dm.constants.r_CM).multiplyScalar(-1);
-		
+
 		this.panels.values().forEach(panel => panel.dispose());
 		this.components.splice(4, this.panels.values().length);
 		this.panels.clear();
@@ -227,6 +254,9 @@ export class Visualizer {
 		}
 		this.hull.build(msg['hull']);
 		this.propulsor.build(msg['propulsor']);
+
+		this.motorMesh.position.copy(this.propulsor.r_motor);
+		this.propMesh.position.copy(this.propulsor.r_prop);
 
 		console.log('INFO: build successful');
 	}

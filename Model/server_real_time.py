@@ -161,6 +161,7 @@ async def handler(socket: websockets.ServerConnection):
 		print(f'INFO: lost connection to {socket.remote_address}')
 		if not sockets and sim.is_running():
 			sim.pause()
+			sim.set_telemetry()
 			print(f'INFO: no remaining sockets, pausing simulation')
 
 # --- Background Loops ---

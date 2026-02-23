@@ -144,6 +144,7 @@ class Simulation:
 			'panels': panel_telems,
 			'propulsor': {
 				'r_prop': self.model.propulsor.r_prop.tolist(), # type: ignore
+				'r_motor': self.model.propulsor.r_motor.tolist(), # type: ignore
 				'd': self.model.propulsor.d
 			},
 			'V_max': self.model.V_max,

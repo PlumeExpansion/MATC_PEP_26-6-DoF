@@ -7,6 +7,7 @@ export class Propulsor extends THREE.Group {
 		super();
 		this.config = config;
 		this.r_prop = new THREE.Vector3();
+		this.r_motor = new THREE.Vector3();
 
 		this.propGeom = new THREE.CircleGeometry(1, 16);
 		this.propMat = new THREE.MeshBasicMaterial({ color: config.subColor, side: THREE.DoubleSide, visible: false });
@@ -27,6 +28,7 @@ export class Propulsor extends THREE.Group {
 	}
 	build(data) {
 		this.r_prop.fromArray(data['r_prop']);
+		this.r_motor.fromArray(data['r_motor']);
 		this.d = data['d'];
 
 		this.propMesh.scale.setScalar(this.d/2);

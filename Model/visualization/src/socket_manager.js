@@ -8,6 +8,7 @@ export class SocketManager {
 			if (msg['type'] == 'build') {
 				dm.setBuildTelem(msg);
 				visualizer.build(msg);
+				visualizer.buildPropeller();
 			} else if (msg['type'] == 'telem') {
 				dm.setTelem(msg);
 				visualizer.telem(msg);

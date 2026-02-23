@@ -18,6 +18,7 @@ class Propulsor:
 		self.w_f = self.model.get_const('w_f',True)
 
 		self.r_prop = self.model.get_const('r_prop_ra')
+		self.r_motor = self.model.get_const('r_motor_ra')
 		self.r_d_1 = self.r_prop - self.d/2*zHat
 		self.r_d_2 = self.r_prop + self.d/2*zHat
 
