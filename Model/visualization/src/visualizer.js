@@ -2,8 +2,6 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 
-import { UI } from "./ui.js";
-import { SocketManager } from "./socket_manager.js";
 import { Hull } from "./components/hull.js";
 import { Panel } from "./components/panel.js";
 import { WingRoot } from "./components/wing_root.js";
@@ -11,289 +9,202 @@ import { Propulsor } from "./components/propulsor.js";
 import { Waterplane } from "./waterplane.js";
 import * as utils from './utils.js';
 
-// --- Scene Setup ---
-const canvas = document.querySelector("canvas.threejs");
-const renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true,});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+export class Visualizer {
+	constructor(tm) {
+		this.tm = tm;
+		this.syncFlag = true;
 
-const scene = new THREE.Scene();
+		// --- Main Setup ---
+		this.canvas = document.querySelector("canvas.threejs");
+		this.renderer = new THREE.WebGLRenderer({canvas: this.canvas, antialias: true,});
+		this.renderer.setSize(window.innerWidth, window.innerHeight);
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-let aspectRatio = window.innerWidth / window.innerHeight;
-const camera = new THREE.PerspectiveCamera(35, aspectRatio,0.1,500);
+		this.scene = new THREE.Scene();
+		this.camera = new THREE.PerspectiveCamera(35, window.innerWidth/window.innerHeight, 0.1, 500);
+		this.camera.defaultPosition = new THREE.Vector3(5, -3, -2);
+		this.camera.position.copy(this.camera.defaultPosition);
+		this.camera.up = new THREE.Vector3(0,0,-1);
+		
+		window.addEventListener('resize', () => {
+			this.camera.aspect = window.innerWidth / window.innerHeight;
+			this.camera.updateProjectionMatrix()
+			this.renderer.setSize(window.innerWidth, window.innerHeight);
+		});
 
-// const aspectRatio = window.innerWidth / window.innerHeight;
-// const camera = new THREE.OrthographicCamera(
-//   -1 * aspectRatio,
-//   1 * aspectRatio,
-//   1,
-//   -1,
-//   0.1,
-//   200
-// );
+		this.controls = new OrbitControls(this.camera, this.canvas);
+		this.controls.enableDamping = true;
+		this.controls.zoomSpeed = 2;
+		this.controls.zoomToCursor = true;
+		
+		this.renderloop = () => {
+			if (tm.sceneConfig.cameraTarget || tm.sceneConfig.cameraFollow) 
+				this.controls.target.copy(this.bodyGroup.position);
+			this.controls.update();
+			try {
+				this.renderer.render(this.scene, this.camera);
+			} catch (error) {
+				console.error("ERROR: render error:", error);
+			}
+			window.requestAnimationFrame(this.renderloop);
+		};
 
-camera.defaultPosition = new THREE.Vector3(5, -3, -2);
-camera.position.copy(camera.defaultPosition);
-camera.up = new THREE.Vector3(0,0,-1);
-
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-// controls.autoRotate = true;
-controls.zoomSpeed = 2;
-controls.zoomToCursor = true;
-
-// --- UI ---
-const ui = new UI()
-
-// --- Scene Lighting ---
-const ambientLight = new THREE.AmbientLight('white', 0.05);
-const topLight = new THREE.DirectionalLight('white', 1.5);
-const bottomLight = new THREE.DirectionalLight('white', 0.2);
-topLight.position.set(2,-2,-2);
-bottomLight.position.set(-2,2,2);
-scene.add(ambientLight, topLight, bottomLight);
-const topLightHelper = new THREE.DirectionalLightHelper(topLight, 0.5);
-const bottomLightHelper = new THREE.DirectionalLightHelper(bottomLight, 0.5);
-scene.add(topLightHelper, bottomLightHelper);
-
-ui.callbacks.onToggleLightHelpers = () => {
-	topLightHelper.visible = !topLightHelper.visible;
-	bottomLightHelper.visible = !bottomLightHelper.visible;
-};
-ui.callbacks.onRefocusCamera = () => {
-	const target = new THREE.Vector3(ui.simStates.r.x, ui.simStates.r.y, ui.simStates.r.z/100)
-	camera.position.copy(target).add(camera.defaultPosition);
-	camera.lookAt(target);
-	controls.target.copy(target);
-	controls.update();
-}
-
-// --- Waterplane Grid ---
-const waterplane = new Waterplane(ui.sceneConfig, 20, 20, 0.01, 2);
-scene.add(waterplane);
-
-// --- STL Models ---
-const bodyGroup = new THREE.Group();
-const raGroup = new THREE.Group();
-bodyGroup.add(raGroup);
-bodyGroup.oldPos = new THREE.Vector3();
-scene.add(bodyGroup);
-
-const loader = new STLLoader();
-const hullGeometryOrig = await loader.loadAsync('RBird_Hull_Remesh.stl');
-const wingGeometryOrig = await loader.loadAsync('Wing_Applied_Low_Poly.stl');
-const rearWingGeometryOrig = await loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
-const material = new THREE.MeshPhongMaterial({color: 'white', transparent: true, opacity: ui.sceneConfig.stlOpacity });
-const hullMesh = new THREE.Mesh(hullGeometryOrig, material);
-const wingMesh = new THREE.Mesh(wingGeometryOrig, material);
-const rearWingMesh = new THREE.Mesh(rearWingGeometryOrig, material);
-
-bodyGroup.add(hullMesh, wingMesh);
-raGroup.add(rearWingMesh);
-
-ui.callbacks.onToggleHull = () => hullMesh.visible = !hullMesh.visible;
-ui.callbacks.onToggleWings = () => wingMesh.visible = !wingMesh.visible;
-ui.callbacks.onToggleRearWings = () => rearWingMesh.visible = !rearWingMesh.visible;
-ui.callbacks.onStlOpacity = () => material.opacity = ui.sceneConfig.stlOpacity;
-
-ui.callbacks.onToggleGrid = () => waterplane.toggleGrid();
-ui.callbacks.onToggleWaterplane = () => waterplane.toggleWaterplane();
-
-// --- Components ---
-const constants = {
-	r_CM: new THREE.Vector3(),
-	r_ra: new THREE.Vector3()
-};
-const states = {
-	r: new THREE.Vector3(),
-	C0b: new THREE.Matrix3(),
-	Cra_b: new THREE.Matrix3()
-}
-const panels = new Map();
-const wingRoots = new Map([
-	['0', new WingRoot(ui.sceneConfig)],
-	['1', new WingRoot(ui.sceneConfig)]
-]);
-const hull = new Hull(ui.sceneConfig);
-const propulsor = new Propulsor(ui.sceneConfig);
-bodyGroup.add(hull, wingRoots.get('0'), wingRoots.get('1'));
-raGroup.add(propulsor);
-const components = [hull, propulsor, wingRoots.get('0'), wingRoots.get('1')];
-
-ui.constants = constants;
-ui.callbacks.onToggleHullAxes = () => hull.toggleAxes();
-ui.callbacks.onToggleFoilAxes = () => {
-	panels.forEach(panel => panel.toggleAxes());
-	wingRoots.values().forEach(wr => wr.toggleAxes());
-}
-ui.callbacks.onTogglePropulsorAxes = () => propulsor.toggleAxes();
-ui.callbacks.onVisuals = () => {
-	components.forEach(c => c.syncVisuals());
-	waterplane.syncVisuals();
-};
-ui.callbacks.onToggleForces = () => components.forEach(c => c.toggleForces());
-ui.callbacks.onToggleMoments = () => components.forEach(c => c.toggleMoments());
-ui.callbacks.onToggleSubmerged = () => panels.forEach(p => p.toggleSubmerged());
-ui.callbacks.onToggleSurfaced = () => panels.forEach(p => p.toggleSurfaced());
-ui.callbacks.onToggleSubmergence = () => {
-	panels.forEach(p => p.toggleSubmergence());
-	propulsor.toggleSubmergence();
-};
-
-function build(msg) {
-	constants.r_CM.fromArray(msg['r_CM']);
-	constants.r_ra.fromArray(msg['r_ra']);
-	raGroup.position.copy(constants.r_ra);
-	
-	hullMesh.position.copy(constants.r_CM).multiplyScalar(-1);
-	wingMesh.position.copy(constants.r_CM).multiplyScalar(-1);
-	
-	panels.values().forEach(panel => panel.dispose());
-	components.splice(4, panels.values().length);
-	panels.clear();
-	for (const id in msg['panels']) {
-		const data = msg['panels'][id];
-		const panel = new Panel(id, ui.sceneConfig);
-		panel.build(data);
-		panels.set(id, panel);
-		components.push(panel);
-		if (panel.rear)
-			raGroup.add(panel);
-		else
-			bodyGroup.add(panel);
-	}
-	hull.build(msg['hull']);
-	propulsor.build(msg['propulsor']);
-
-	constants.V_max = msg['V_max'];
-	constants.psi_ra_max = msg['psi_ra_max']*180/Math.PI;
-
-	ui.setBuildTelem(msg);
-
-	console.log('INFO: build successful');
-}
-
-let syncFlag = true;
-function telem(msg) {
-	ui.simStates.U.u = msg['U'][0];
-	ui.simStates.U.v = msg['U'][1];
-	ui.simStates.U.w = msg['U'][2];
-	ui.simStates.omega.p = msg['omega'][0]*180/Math.PI;
-	ui.simStates.omega.q = msg['omega'][1]*180/Math.PI;
-	ui.simStates.omega.r = msg['omega'][2]*180/Math.PI;
-	ui.simStates.Phi.phi = msg['Phi'][0]*180/Math.PI;
-	ui.simStates.Phi.theta = msg['Phi'][1]*180/Math.PI;
-	ui.simStates.Phi.psi = msg['Phi'][2]*180/Math.PI;
-	states.r.fromArray(msg['r']);
-	ui.simStates.r.x = msg['r'][0];
-	ui.simStates.r.y = msg['r'][1];
-	ui.simStates.r.z = msg['r'][2]*100;
-	ui.simStates.psi_ra = msg['psi_ra']*180/Math.PI;
-	states.C0b.fromArray(msg['C0b']).transpose();
-	states.Cra_b.fromArray(msg['Cra_b']).transpose();
-	states.Cb_ra = states.Cra_b.clone().transpose();
-	
-	bodyGroup.oldPos.copy(bodyGroup.position)
-	bodyGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(states.C0b));
-	bodyGroup.position.copy(states.r);
-
-	raGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(states.Cb_ra));
-
-	for (const id in msg['panels']) panels.get(id).syncTelem(msg['panels'][id], states.Cra_b);
-	for (const id in msg['wing_roots']) wingRoots.get(id).syncTelem(msg['wing_roots'][id]);
-	hull.syncTelem(msg['hull']);
-	propulsor.syncTelem(msg['propulsor'], states.Cra_b);
-	
-	ui.simStates.V = propulsor.V;
-	ui.simStates.I = propulsor.I;
-	ui.simStates.RPM = propulsor.n*60;
-	ui.simStates.rate = msg['rate'];
-	ui.simStates.method = msg['method'];
-	ui.setMethod(msg['method'])
-	ui.updateSimulationStatus(msg['running']);
-	
-	if (syncFlag) {
-		ui.syncControlStates();
-		ui.syncInputs();
-		syncFlag = false;
-	}
-
-	if (ui.sceneConfig.cameraFollow) camera.position.sub(bodyGroup.oldPos.sub(bodyGroup.position));
-
-	waterplane.updateGrid(states.r);
-	components.forEach(c => c.syncVisuals());
-	waterplane.syncVisuals();
-}
-
-ui.callbacks.onPause = () => {
-	ui.syncControlStates();
-	ui.syncInputs();
-}
-
-// --- SocketManager ---
-const socket = new SocketManager(
-	(msg) => {
-		ui.setTelem(msg);
-		if (msg['type'] == 'build') {
-			build(msg);
-		} else if (msg['type'] == 'telem') {
-			telem(msg);
-		} else {
-			console.log('WARNING: unknown data received', msg)
+		// --- Scene Setup ---
+		this.waterplane = new Waterplane(this.tm.sceneConfig, 20, 20, 0.01, 2);
+		this.scene.add(this.waterplane);
+		tm.callbacks.onToggleGrid = () => this.waterplane.toggleGrid();
+		tm.callbacks.onToggleWaterplane = () => this.waterplane.toggleWaterplane();
+		
+		// -- Lights -- 
+		this.ambientLight = new THREE.AmbientLight('white', 0.05);
+		this.topLight = new THREE.DirectionalLight('white', 1.5);
+		this.bottomLight = new THREE.DirectionalLight('white', 0.2);
+		this.topLight.position.set(2,-2,-2);
+		this.bottomLight.position.set(-2,2,2);
+		this.scene.add(this.ambientLight, this.topLight, this.bottomLight);
+		this.topLightHelper = new THREE.DirectionalLightHelper(this.topLight, 0.5);
+		this.bottomLightHelper = new THREE.DirectionalLightHelper(this.bottomLight, 0.5);
+		this.scene.add(this.topLightHelper, this.bottomLightHelper);
+		
+		tm.callbacks.onToggleLightHelpers = () => {
+			this.topLightHelper.visible = !this.topLightHelper.visible;
+			this.bottomLightHelper.visible = !this.bottomLightHelper.visible;
+		};
+		tm.callbacks.onRefocusCamera = () => {
+			const target = new THREE.Vector3(tm.simStates.r.x, tm.simStates.r.y, tm.simStates.r.z/100)
+			this.camera.position.copy(target).add(this.camera.defaultPosition);
+			this.camera.lookAt(target);
+			this.controls.target.copy(target);
+			this.controls.update();
 		}
-	},
-	(status) => {
-		if (status == 'Disconnected') syncFlag = true;
-		ui.updateSocketStatus(status)
+
+		// -- Groups --
+		this.bodyGroup = new THREE.Group();
+		this.raGroup = new THREE.Group();
+		this.bodyGroup.add(this.raGroup);
+		this.bodyGroup.oldPos = new THREE.Vector3();
+		this.scene.add(this.bodyGroup);
+
+		// -- Coordinate Frames --
+		this.fixedFrame = new utils.Axes();
+		this.scene.add(this.fixedFrame);
+		this.bodyFrame = new utils.Axes();
+		this.bodyGroup.add(this.bodyFrame);
+		this.rearAxleFrame = new utils.Axes();
+		this.raGroup.add(this.rearAxleFrame);
+
+		tm.callbacks.onToggleFixedFrame = () => this.fixedFrame.visible = !this.fixedFrame.visible;
+		tm.callbacks.onToggleBodyFrame = () => this.bodyFrame.visible = !this.bodyFrame.visible;
+		tm.callbacks.onToggleRearAxleFrame = () => this.rearAxleFrame.visible = !this.rearAxleFrame.visible;
+
+		// --- Model Setup ---
+		this.panels = new Map();
+		this.wingRoots = new Map([
+			['0', new WingRoot(tm.sceneConfig)],
+			['1', new WingRoot(tm.sceneConfig)]
+		]);
+		this.#loadSTL();
+		this.hull = new Hull(tm.sceneConfig);
+		this.propulsor = new Propulsor(tm.sceneConfig);
+		this.bodyGroup.add(this.hull, this.wingRoots.get('0'), this.wingRoots.get('1'));
+		this.raGroup.add(this.propulsor);
+		this.components = [this.hull, this.propulsor, this.wingRoots.get('0'), this.wingRoots.get('1')];
+
+		tm.callbacks.onToggleHullAxes = () => this.hull.toggleAxes();
+		tm.callbacks.onToggleFoilAxes = () => {
+			this.panels.forEach(panel => panel.toggleAxes());
+			this.wingRoots.values().forEach(wr => wr.toggleAxes());
+		}
+		tm.callbacks.onTogglePropulsorAxes = () => this.propulsor.toggleAxes();
+		tm.callbacks.onVisuals = () => {
+			this.components.forEach(c => c.syncVisuals());
+			this.waterplane.syncVisuals();
+		};
+		tm.callbacks.onToggleForces = () => this.components.forEach(c => c.toggleForces());
+		tm.callbacks.onToggleMoments = () => this.components.forEach(c => c.toggleMoments());
+		tm.callbacks.onToggleSubmerged = () => this.panels.forEach(p => p.toggleSubmerged());
+		tm.callbacks.onToggleSurfaced = () => this.panels.forEach(p => p.toggleSurfaced());
+		tm.callbacks.onToggleSubmergence = () => {
+			this.panels.forEach(p => p.toggleSubmergence());
+			this.propulsor.toggleSubmergence();
+		};
 	}
-);
-socket.connect(ui.socketParams.url);
-ui.callbacks.onConnect = (url) => socket.connect(url);
-ui.callbacks.onStateChange = (state, value) => {
-	socket.send({ type: 'set', state: state, value: value });
-};
-ui.callbacks.onToggleRun = () => socket.send({ type: 'sim' });
-ui.callbacks.onStep = () => {
-	syncFlag = true;
-	socket.send({ type: 'step', dt: Math.pow(10,ui.controlStates.log_dt) });
-};
-ui.callbacks.onExport = () => socket.send({ type: 'export' })
-ui.callbacks.onReset = () => {
-	syncFlag = true;
-	socket.send({ type: 'reset' });
-};
-ui.callbacks.onReinit = () => {
-	syncFlag = true;
-	socket.send({ type: 'reinit' });
+	async #loadSTL() {
+		const loader = new STLLoader();
+		this.hullGeometryOrig = await loader.loadAsync('RBird_Hull_Remesh.stl');
+		this.wingGeometryOrig = await loader.loadAsync('Wing_Applied_Low_Poly.stl');
+		this.rearWingGeometryOrig = await loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
+		this.stlMaterial = new THREE.MeshPhongMaterial({
+			color: 'white', 
+			transparent: true, 
+			opacity: this.tm.sceneConfig.stlOpacity
+		});
+		this.hullMesh = new THREE.Mesh(this.hullGeometryOrig, this.stlMaterial);
+		this.wingMesh = new THREE.Mesh(this.wingGeometryOrig, this.stlMaterial);
+		this.rearWingMesh = new THREE.Mesh(this.rearWingGeometryOrig, this.stlMaterial);
+
+		this.bodyGroup.add(this.hullMesh, this.wingMesh);
+		this.raGroup.add(this.rearWingMesh);
+		this.tm.callbacks.onToggleHull = () => this.hullMesh.visible = !this.hullMesh.visible;
+		this.tm.callbacks.onToggleWings = () => this.wingMesh.visible = !this.wingMesh.visible;
+		this.tm.callbacks.onToggleRearWings = () => this.rearWingMesh.visible = !this.rearWingMesh.visible;
+		this.tm.callbacks.onStlOpacity = () => this.stlMaterial.opacity = this.tm.sceneConfig.stlOpacity;
+	}
+	build(msg) {
+		this.raGroup.position.copy(this.tm.constants.r_ra);
+
+		this.hullMesh.position.copy(this.tm.constants.r_CM).multiplyScalar(-1);
+		this.wingMesh.position.copy(this.tm.constants.r_CM).multiplyScalar(-1);
+		
+		this.panels.values().forEach(panel => panel.dispose());
+		this.components.splice(4, this.panels.values().length);
+		this.panels.clear();
+		for (const id in msg['panels']) {
+			const data = msg['panels'][id];
+			const panel = new Panel(id, this.tm.sceneConfig);
+			panel.build(data);
+			this.panels.set(id, panel);
+			this.components.push(panel);
+			if (panel.rear)
+				this.raGroup.add(panel);
+			else
+				this.bodyGroup.add(panel);
+		}
+		this.hull.build(msg['hull']);
+		this.propulsor.build(msg['propulsor']);
+
+		console.log('INFO: build successful');
+	}
+	telem(msg) {
+		this.bodyGroup.oldPos.copy(this.bodyGroup.position)
+		this.bodyGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(this.tm.states.C0b));
+		this.bodyGroup.position.copy(this.tm.states.r);
+
+		this.raGroup.setRotationFromMatrix(new THREE.Matrix4().setFromMatrix3(this.tm.states.Cb_ra));
+
+		for (const id in msg['panels']) this.panels.get(id).syncTelem(msg['panels'][id], this.tm.states.Cra_b);
+		for (const id in msg['wing_roots']) this.wingRoots.get(id).syncTelem(msg['wing_roots'][id]);
+		this.hull.syncTelem(msg['hull']);
+		this.propulsor.syncTelem(msg['propulsor'], this.tm.states.Cra_b);
+		
+		this.tm.simStates.V = this.propulsor.V;
+		this.tm.simStates.I = this.propulsor.I;
+		this.tm.simStates.RPM = this.propulsor.n*60;
+		this.tm.simStates.rate = msg['rate'];
+		this.tm.simStates.method = msg['method'];
+		this.tm.setMethod(msg['method'])
+		this.tm.updateSimulationStatus(msg['running']);
+		
+		if (this.syncFlag) {
+			this.tm.syncControlStates();
+			this.tm.syncInputs();
+			this.syncFlag = false;
+		}
+
+		if (this.tm.sceneConfig.cameraFollow) this.camera.position.sub(this.bodyGroup.oldPos.sub(this.bodyGroup.position));
+
+		this.waterplane.updateGrid(this.tm.states.r);
+		this.components.forEach(c => c.syncVisuals());
+		this.waterplane.syncVisuals();
+	}
 }
-
-// --- Coordinate Frame ---
-const fixedFrame = new utils.Axes();
-scene.add(fixedFrame);
-const bodyFrame = new utils.Axes();
-bodyGroup.add(bodyFrame);
-const rearAxleFrame = new utils.Axes();
-raGroup.add(rearAxleFrame);
-
-ui.callbacks.onToggleFixedFrame = () => fixedFrame.visible = !fixedFrame.visible;
-ui.callbacks.onToggleBodyFrame = () => bodyFrame.visible = !bodyFrame.visible;
-ui.callbacks.onToggleRearAxleFrame = () => rearAxleFrame.visible = !rearAxleFrame.visible;
-
-window.addEventListener('resize', () => {
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix()
-	renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-const renderloop = () => {
-	if (ui.sceneConfig.cameraTarget || ui.sceneConfig.cameraFollow) controls.target.copy(bodyGroup.position);
-	controls.update();
-	try {
-		renderer.render(scene, camera);
-	} catch (error) {
-		console.error("ERROR: render error:", error);
-	}
-	window.requestAnimationFrame(renderloop);
-};
-
-renderloop();

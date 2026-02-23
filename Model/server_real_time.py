@@ -160,9 +160,9 @@ async def handler(socket: websockets.ServerConnection):
 			print(f'INFO: no remaining sockets, pausing simulation')
 
 # --- Background Loops ---
-async def simulation_loop():
+async def simulation_loop(sim_task):
 	loop_rate = 100
-	step_rate = 20
+	step_rate = 60
 	try:
 		while True:
 			# step and transmit telemetry
@@ -182,6 +182,8 @@ async def simulation_loop():
 		print('INFO: simulation terminated')
 	except Exception as e:
 		print(f'ERROR: simulation error - {e}')
+		print(f'INFO: reassining simulation task')
+		sim_task = asyncio.create_task(simulation_loop(sim_task))
 
 async def console_loop():
 	sentinel = ['q', 'quit', 'stop', 'exit']
@@ -268,7 +270,8 @@ async def main():
 	async with websockets.serve(handler, '127.0.0.1', port):
 		print(f'INFO: simulation server started on port {port}')
 
-		sim_task = asyncio.create_task(simulation_loop())
+		sim_task = None
+		sim_task = asyncio.create_task(simulation_loop(sim_task))
 		controller_task = asyncio.create_task(controller_loop())
 
 		try:

@@ -1,7 +1,12 @@
-export default {
-    root: 'src/',
-    publicDir: '../resources/',
+import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+
+export default defineConfig({
+    // root: 'src/',
+    publicDir: './resources/',
     base: './',
+
+	plugins: [svelte()],
 
 	server: {
 		port: 9900,
@@ -11,4 +16,4 @@ export default {
 		port: 9900,
 		strictPort: true
 	}
-}
+});

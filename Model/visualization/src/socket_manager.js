@@ -1,10 +1,45 @@
 export class SocketManager {
-	constructor(onMessageReceived, onStatusChange) {
+	constructor(tm, visualizer) {
+		this.tm = tm;
+		this.visualizer = visualizer;
 		this.socket = null;
-		this.onMessageReceived = onMessageReceived;
-		this.onStatusChange = onStatusChange;
-	}
 
+		this.onMessageReceived = (msg) => {
+			if (msg['type'] == 'build') {
+				tm.setBuildTelem(msg);
+				visualizer.build(msg);
+			} else if (msg['type'] == 'telem') {
+				tm.setTelem(msg);
+				visualizer.telem(msg);
+			} else {
+				console.log('WARNING: unknown data received', msg)
+			}
+		},
+		this.onStatusChange = (status) => {
+			if (status == 'Disconnected') tm.syncFlag = true;
+			tm.updateSocketStatus(status)
+		}
+
+		tm.callbacks.onConnect = (url) => this.connect(url);
+		tm.callbacks.onStateChange = (state, detail) => {
+			if (detail.origin == 'internal')
+				this.send({ type: 'set', state: state, value: detail.value });
+		};
+		tm.callbacks.onToggleRun = () => this.send({ type: 'sim' });
+		tm.callbacks.onStep = () => {
+			visualizer.syncFlag = true;
+			this.send({ type: 'step', dt: tm.controlStates.dt });
+		};
+		tm.callbacks.onExport = () => this.send({ type: 'export' })
+		tm.callbacks.onReset = () => {
+			visualizer.syncFlag = true;
+			this.send({ type: 'reset' });
+		};
+		tm.callbacks.onReinit = () => {
+			visualizer.syncFlag = true;
+			this.send({ type: 'reinit' });
+		}
+	}
 	connect(url) {
 		if (this.socket != null) return;
 		this.socket = new WebSocket(url);
@@ -38,7 +73,6 @@ export class SocketManager {
 			this.onStatusChange('Error');
 		})
 	}
-
 	send(data) {
 		if (this.socket?.readyState === WebSocket.OPEN) {
 			this.socket.send(JSON.stringify(data));
