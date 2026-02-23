@@ -121,6 +121,10 @@ export class Visualizer {
 		this.wingGeometry = await loader.loadAsync('Wing_Applied_Low_Poly.stl');
 		this.rearWingGeometry = await loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
 		this.buoyGeometry = await loader.loadAsync('Buoy.stl');
+		this.motorGeometry = await loader.loadAsync('Low_Poly_FlipSky-85165-150.stl');
+		// this.propGeometry = await loader.loadAsync('Buoy.stl');
+		// TODO: load geometry on build
+		// TODO: finish motor mesh and position
 		this.stlMaterial = new THREE.MeshPhongMaterial({ transparent: true });
 		this.buoyMaterial = new THREE.MeshPhongMaterial();
 		this.hullMesh = new THREE.Mesh(this.hullGeometry, this.stlMaterial);
