@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export class TelemetryManager {
+export class DataManager {
 	socketParams = $state({
 		url: 'ws://localhost:9000',
 		status: 'Disconnected'
@@ -9,6 +9,14 @@ export class TelemetryManager {
 		cameraFollow: true,
 		cameraTrack: 'Body',
 		stlOpacity: 0.8,
+		stlColor: '#ffffff',
+		buoyColor: '#f34242',
+		buoyScale: 1,
+		buoyFlashRate: 0.5,
+		buoyTrailCount: 10,
+		maxBuoyTrailCount: 20,
+		nearBuoyPos: {x: 10, y: -10},
+		farBuoyPos: {x: 10, y: -815},
 		waterplaneColor: '#75b8ff',
 		waterplaneOpacity: 0.3,
 		hullAxesScale: 0.5,
