@@ -38,7 +38,7 @@ export class Visualizer {
 		this.controls.zoomToCursor = true;
 
 		// --- Scene Setup ---
-		this.waterplane = new Waterplane(this.dm.sceneConfig, 20, 20, 0.01, 2);
+		this.waterplane = new Waterplane(this.dm.sceneConfig, 20, 20, 2);
 		this.scene.add(this.waterplane);
 		dm.callbacks.onToggleGrid = () => this.waterplane.toggleGrid();
 		dm.callbacks.onToggleWaterplane = () => this.waterplane.toggleWaterplane();
@@ -141,6 +141,9 @@ export class Visualizer {
 		}
 		this.motorMesh.rotateZ(-Math.PI/2);
 		this.propMesh.rotateY(Math.PI/2);
+
+		this.bodyGroup.renderOrder = 2;
+		this.raGroup.renderOrder = 1;
 		
 		this.bodyGroup.add(this.hullMesh, this.wingMesh);
 		this.raGroup.add(this.rearWingMesh, this.motorMesh, this.propMesh);
@@ -276,10 +279,16 @@ export class Visualizer {
 			this.syncFlag = false;
 		}
 
-		if (this.dm.sceneConfig.cameraFollow) {
-			this.bodyGroup.oldPos.sub(this.bodyGroup.position);
-			this.camera.position.sub(this.bodyGroup.oldPos);
-			this.controls.target.sub(this.bodyGroup.oldPos);
+		switch (this.dm.sceneConfig.cameraMode) {
+			case 'Lock':
+				const angle = this.dm.simStates.deltaPsi*Math.PI/180;
+				const matrix = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(0,0,angle))
+				const delta = this.camera.position.clone().sub(this.controls.target).applyMatrix4(matrix);
+				this.camera.position.copy(this.controls.target).add(delta);
+			case 'Follow':
+				this.bodyGroup.oldPos.sub(this.bodyGroup.position);
+				this.camera.position.sub(this.bodyGroup.oldPos);
+				this.controls.target.sub(this.bodyGroup.oldPos);
 		}
 
 		this.waterplane.updateGrid(this.dm.states.r);

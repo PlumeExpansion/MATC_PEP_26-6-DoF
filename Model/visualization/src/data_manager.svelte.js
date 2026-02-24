@@ -6,7 +6,7 @@ export class DataManager {
 		status: 'Disconnected'
 	});
 	sceneConfig = $state({
-		cameraFollow: true,
+		cameraMode: 'Follow',
 		cameraTrack: 'Body',
 		stlOpacity: 0.8,
 		stlColor: '#ffffff',
@@ -34,6 +34,7 @@ export class DataManager {
 		U: {u: 0, v: 0, w: 0},
 		omega: {p: 0, q: 0, r: 0},
 		Phi: {phi: 0, theta: 0, psi: 0},
+		deltaPsi: 0,
 		r: {x: 0, y: 0, z: 0},
 		I: 0,
 		RPM: 0,
@@ -42,7 +43,8 @@ export class DataManager {
 		rate: 1,
 		method: 'N/A',
 		running: false,
-		cmdQueued: false
+		cmdQueued: false,
+		time: 0,
 	});
 	methods = $state(['N/A']);
 	controlStates = $state({
@@ -124,14 +126,17 @@ export class DataManager {
 		this.simStates.omega.r = msg['omega'][2]*180/Math.PI;
 		this.simStates.Phi.phi = msg['Phi'][0]*180/Math.PI;
 		this.simStates.Phi.theta = msg['Phi'][1]*180/Math.PI;
+		const oldPsi = this.simStates.Phi.psi;
 		this.simStates.Phi.psi = msg['Phi'][2]*180/Math.PI;
 		this.simStates.Phi.psi -= this.simStates.Phi.psi>180? 360 : 0;
+		this.simStates.deltaPsi = this.simStates.Phi.psi-oldPsi;
 		this.states.r.fromArray(msg['r']);
 		this.simStates.r.x = msg['r'][0];
 		this.simStates.r.y = msg['r'][1];
 		this.simStates.r.z = msg['r'][2]*100;
 		this.simStates.psi_ra = msg['psi_ra']*180/Math.PI;
 		this.simStates.rate = msg['rate'];
+		this.simStates.time = msg['time'];
 		this.states.C0b.fromArray(msg['C0b']).transpose();
 		this.states.Cra_b.fromArray(msg['Cra_b']).transpose();
 		this.states.Cb_ra = this.states.Cra_b.clone().transpose();
@@ -164,8 +169,6 @@ export class DataManager {
 		this.controlStates.r.x = this.simStates.r.x;
 		this.controlStates.r.y = this.simStates.r.y;
 		this.controlStates.r.z = this.simStates.r.z;
-
-		this.controlStates.rate = this.simStates.rate;
 	}
 	syncInputs() {
 		this.controlStates.input.x = -this.simStates.psi_ra / this.constants.psi_ra_max;

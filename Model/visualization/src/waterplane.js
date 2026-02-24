@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
 export class Waterplane extends THREE.Group {
-	constructor(config, size, divisions, depth, iterations) {
+	constructor(config, size, divisions, iterations) {
 		super();
 		this.config = config;
 		this.size = size;
 		this.iterations = iterations;
 
-		this.tileGoem = new THREE.BoxGeometry(size, size, depth);
+		this.tileGoem = new THREE.PlaneGeometry(size, size);
 		this.grids = []
 		this.tiles = []
 		for (let i=0; i<(2*iterations+1)**2; i++) {
@@ -17,7 +17,7 @@ export class Waterplane extends THREE.Group {
 			this.grids.push(grid);
 			
 			const tileMat = new THREE.MeshBasicMaterial({ transparent: true, color: config.waterplaneColor, 
-				opacity: i == 0? config.waterplaneOpacity : 0 });
+				opacity: i == 0? config.waterplaneOpacity : 0, side: THREE.DoubleSide, depthWrite: false });
 			const tile = new THREE.Mesh(this.tileGoem, tileMat);
 			tile.baseOpacity = 1;
 			this.tiles.push(tile);

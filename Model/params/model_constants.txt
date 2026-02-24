@@ -23,7 +23,7 @@ V_max = 44.4		# maximum input voltage (V)
 ###################################
 # Propeller Parameters
 
-d = 0.13			# propeller diameter (m)
+d = 0.12			# propeller diameter (m)
 
 eta_T = 0.95		# thrust deduction factor
 eta_T_surf = 0.6	# surfaced thrust deduction factor
@@ -36,7 +36,7 @@ w_f = 0.05 		# foiling wake factor
 ###################################
 # Miscellaneous (keel transom frame)
 
-CM_kt = (0.50, 0, -0.12)		# body frame origin
+CM_kt = (0.45, 0, -0.12)		# body frame origin
 ra_kt = (-0.1, 0, 0.05)			# rear axle frame origin
 r_surf_kt = (0.70, 0, -0.24)	# surfaced forces center
 

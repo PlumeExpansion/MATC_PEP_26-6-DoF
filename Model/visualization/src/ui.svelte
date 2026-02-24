@@ -1,6 +1,6 @@
 <script lang='ts'>
 	import { Pane, Folder, Binding, Monitor, Button, Slider, TabGroup, TabPage, Color, Point,
-		List, ButtonGrid, type ButtonGridClickEvent } from 'svelte-tweakpane-ui'
+		List, ButtonGrid, type ButtonGridClickEvent, RadioGrid} from 'svelte-tweakpane-ui'
 	import { DataManager } from './data_manager.svelte.js';
 
 	let { dm }: { dm: DataManager } = $props();
@@ -46,6 +46,7 @@
 				</Folder>
 			</Folder>
 			<Folder title='Simulation' disabled={!isConnected}>
+				<Monitor value={dm.simStates.time} label='time' format={v => v.toFixed(2)} />
 				<Monitor value={dm.simStates.rate} label='rate' />
 				<Slider bind:value={dm.controlStates.rate} 
 					min={0} max={1} format={v => v.toFixed(2)} label='target'
@@ -84,18 +85,9 @@
 		<TabPage title='Visuals'>
 			<Folder title='Camera'>
 				<Button on:click={() => dm.callbacks.onRefocusCamera()}  title='Refocus Camera' />
-				<ButtonGrid on:click={ev => {
-					switch (ev.detail.label) {
-						case 'Free':
-							dm.sceneConfig.cameraFollow = false;
-							break;
-						case 'Follow':
-							dm.sceneConfig.cameraFollow = true;
-							break;
-					}
-				}} buttons={['Free','Follow']}  rows={1} />
+				<RadioGrid bind:value={dm.sceneConfig.cameraMode} values={['Free','Follow','Lock']}  rows={1} />
 				<Folder title='Track'>
-					<ButtonGrid on:click={ev => dm.sceneConfig.cameraTrack = ev.detail.label} buttons={['None','Body','Buoy']} rows={1} />
+					<RadioGrid bind:value={dm.sceneConfig.cameraTrack} values={['None','Body','Buoy']}  rows={1} />
 				</Folder>
 			</Folder>
 			<Folder title='Scene'>
@@ -147,7 +139,7 @@
 					<Slider bind:value={dm.sceneConfig.buoyScale} 
 						min={0} max={2} format={v => v.toFixed(1)} label='scale' on:change={() => dm.callbacks.onBuoyVisuals()}/>
 					<Slider bind:value={dm.sceneConfig.buoyFlashRate} 
-						min={0} max={1} format={v => v.toFixed(1)} label='rate [Hz]' on:change={() => dm.callbacks.onBuoyVisuals()}/>
+						min={0} max={1} format={v => v.toFixed(1)} label='rate' on:change={() => dm.callbacks.onBuoyVisuals()}/>
 					<Slider bind:value={dm.sceneConfig.buoyTrailCount} step={1}
 						min={0} max={dm.sceneConfig.maxBuoyTrailCount} format={v => v.toFixed(0)} label='trail' on:change={() => dm.callbacks.onBuoyTrail()}/>
 					<Point bind:value={dm.sceneConfig.nearBuoyPos} label='<x,y>'
