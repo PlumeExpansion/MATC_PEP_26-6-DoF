@@ -168,12 +168,12 @@ export class Visualizer {
 		}
 		this.dm.callbacks.onBuoyTrail = () => {
 			if (!this.nearBuoyMesh.visible) return;
-			const delta = new THREE.Vector3().copy(this.farBuoyMesh.position).sub(this.nearBuoyMesh.position)
+			this.buoyDelta = new THREE.Vector3().copy(this.farBuoyMesh.position).sub(this.nearBuoyMesh.position)
 				.divideScalar(this.dm.sceneConfig.buoyTrailCount+1);
 			for (let i=0; i<this.dm.sceneConfig.maxBuoyTrailCount; i++) {
 				const buoy = this.buoys[i];
 				if (i < this.dm.sceneConfig.buoyTrailCount) {
-					buoy.position.copy(delta).multiplyScalar(i+1).add(this.nearBuoyMesh.position);
+					buoy.position.copy(this.buoyDelta).multiplyScalar(i+1).add(this.nearBuoyMesh.position);
 					buoy.visible = true;
 				} else {
 					buoy.visible = false;

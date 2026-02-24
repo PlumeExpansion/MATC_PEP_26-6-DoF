@@ -45,6 +45,7 @@ export class DataManager {
 		running: false,
 		cmdQueued: false,
 		time: 0,
+		Vmax: 0,
 	});
 	methods = $state(['N/A']);
 	controlStates = $state({
