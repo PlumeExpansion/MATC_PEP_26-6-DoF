@@ -13,7 +13,7 @@ def main():
 	I0 = 2.7		# no load current (A)
 	R0 = 0.0582		# motor resistance (Ω)
 
-	d = 0.12		# propeller diameter (m)
+	d = 0.13		# propeller diameter (m)
 	d_h = 0.085		# hub diameter (m)
 
 	f_d0 = 0.167	# standard tip-to-tip to hub diameter ratop
@@ -27,12 +27,15 @@ def main():
 	print(f'INFO: thrust deduction factor - {eta_T_h}')
 
 	plot = False
-	plot_idx = 3		# n,T,Q,I
+	plot_idx = 0		# n,T,Q,I
 	calculate = True
+	analysis = False
 
 	rho_range = np.array([0.8, 1.4, 995, 1100])
-	vA_range = np.linspace(-20,20,100)
-	V_range = np.linspace(-55,55,100)
+	# vA_range = np.linspace(-20,20,100)
+	# V_range = np.linspace(-55,55,100)
+	vA_range = np.arange(-20,20,0.5)
+	V_range = np.arange(-55,55,1)
 
 	if calculate:
 		f_coeffs = FourQuad.load_fourrier_coeffs(prop_path)
@@ -54,8 +57,8 @@ def main():
 			else:
 				T = 1/2*CT_CQ[:,0]*rho*(np.pi/4*d**2)*vR2 * eta_T_h
 				Q = 1/2*CT_CQ[:,1]*rho*(np.pi/4*d**3)*vR2
-			# I = Q/Kt + I0*np.tanh(Q / 1)
-			I = Q/Kt + np.copysign(I0, Q)
+			I = Q/Kt + I0*np.tanh(Q/0.01)
+			# I = Q/Kt + np.copysign(I0, Q)
 
 			return np.array([T,Q,I])
 			# return res.flatten() if np.isscalar(n) else res
@@ -105,6 +108,13 @@ def main():
 			plt.title(f'{lbl} ($rho$={rho})')
 		
 		plt.show()
+
+	if analysis:
+		data = np.load(output_path)
+		table = data['grid_results']
+		vA_range = data['vA_range']
+		V_range = data['V_range']
+		print(f'INFO: stationary rotation speeds - {table[:,np.where(vA_range==0)[0],np.where(V_range==0)[0],0].flatten()}')
 
 if __name__ == '__main__': 
 	try:
