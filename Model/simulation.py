@@ -275,4 +275,5 @@ class Simulation:
 		self.raw_telem['running'] = self.__running
 		self.raw_telem['rate'] = self.rate
 		self.raw_telem['method'] = self.method
+		self.raw_telem['time'] = self.elapsed
 		self.telem = json.dumps(self.raw_telem)

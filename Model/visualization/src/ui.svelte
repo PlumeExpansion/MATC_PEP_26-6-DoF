@@ -2,8 +2,9 @@
 	import { Pane, Folder, Binding, Monitor, Button, Slider, TabGroup, TabPage, Color, Point,
 		List, ButtonGrid, type ButtonGridClickEvent, RadioGrid} from 'svelte-tweakpane-ui'
 	import { DataManager } from './data_manager.svelte.js';
+	import { RunManager } from './run_manager.svelte.js';
 
-	let { dm }: { dm: DataManager } = $props();
+	let { dm, rm }: { dm: DataManager, rm: RunManager } = $props();
 
 	let isDisconnected = $derived(dm.socketParams.status == 'Disconnected');
 	let isConnected = $derived(dm.socketParams.status == 'Connected');
@@ -52,10 +53,7 @@
 					min={0} max={1} format={v => v.toFixed(2)} label='target'
 					on:change={ev => dm.callbacks.onStateChange('rate', ev.detail)}/>
 				<List bind:value={dm.simStates.method} label='method' options={dm.methods} 
-					on:change={ev => {
-						if (ev.detail.value != dm.simStates.method)
-							dm.callbacks.onStateChange('method', ev.detail)
-					}}/>
+					on:change={ev => dm.callbacks.onStateChange('method', ev.detail)}/>
 				<Slider bind:value={dm.controlStates.dt} 
 					min={0.001} max={0.1} format={v => v.toFixed(3)} label='Δt'/>
 				<ButtonGrid on:click={ev => {
@@ -81,8 +79,11 @@
 					}
 				}} buttons={['Reset','Re-initialize']}  rows={1} />
 			</Folder>
-		</TabPage>
-		<TabPage title='Visuals'>
+			<Folder title='Run'>
+				<Monitor value={rm.elapsed} label='elapsed' format={v => v.toFixed(2)} />
+				<Button on:click={() => rm.onToggleRun()}  title={rm.inProgress? 'End Run' : 'Start Run'} />
+				<ButtonGrid on:click={ev => rm.onPos(ev.detail.label)} buttons={['Set Left','Set Right']}  rows={1} disabled={rm.inProgress} />
+			</Folder>
 			<Folder title='Camera'>
 				<Button on:click={() => dm.callbacks.onRefocusCamera()}  title='Refocus Camera' />
 				<RadioGrid bind:value={dm.sceneConfig.cameraMode} values={['Free','Follow','Lock']}  rows={1} />
@@ -90,6 +91,8 @@
 					<RadioGrid bind:value={dm.sceneConfig.cameraTrack} values={['None','Body','Buoy']}  rows={1} />
 				</Folder>
 			</Folder>
+		</TabPage>
+		<TabPage title='Visuals'>
 			<Folder title='Scene'>
 				<ButtonGrid on:click={ev => {
 					switch (ev.detail.label) {

@@ -10,6 +10,7 @@ import { Waterplane } from "./waterplane.js";
 import * as utils from './utils.js';
 
 export class Visualizer {
+	camFollowTimeConstant = 0.5;
 	constructor(dm) {
 		this.dm = dm;
 		this.syncFlag = true;
@@ -134,6 +135,7 @@ export class Visualizer {
 		this.buoys = []
 		this.nearBuoyMesh = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
 		this.farBuoyMesh = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
+		this.targetBuoy = this.farBuoyMesh;
 		for (let i=0; i<this.dm.sceneConfig.maxBuoyTrailCount; i++) {
 			const buoy = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
 			this.buoys.push(buoy);
@@ -190,10 +192,12 @@ export class Visualizer {
 		this.dm.callbacks.onBuoyPos('Near', this.dm.sceneConfig.nearBuoyPos);
 		this.dm.callbacks.onBuoyPos('Far', this.dm.sceneConfig.farBuoyPos);
 		this.dm.callbacks.onBuoyVisuals();
-
+		
 		this.renderloop = this.renderloop.bind(this);
-		window.requestAnimationFrame((nowMS) => this.lastMs = nowMS);
-		this.renderloop();
+		window.requestAnimationFrame((nowMS) => {
+			this.lastMs = nowMS
+			window.requestAnimationFrame(this.renderloop);
+		});
 	}
 	async buildPropeller() {
 		this.propMesh.geometry.dispose();
@@ -214,7 +218,27 @@ export class Visualizer {
 	renderloop(nowMs) {
 		const dt = (nowMs - this.lastMs)/1000;
 		this.lastMs = nowMs;
-		if (this.dm.sceneConfig.cameraTrack == 'Body') this.controls.target.copy(this.bodyGroup.position);
+		const track = this.dm.sceneConfig.cameraTrack;
+		this.controls.zoomToCursor = track == 'None';
+		if (track != 'None') {
+			let target;
+			if (track == 'Body') target = this.bodyGroup.position.clone();
+			else {
+				target = this.targetBuoy.position.clone();
+				const bodyDist = target.distanceTo(this.bodyGroup.position);
+				const camDist = target.distanceTo(this.camera.position);
+				const scaleDist = camDist-bodyDist;
+				const camToTargetDir = new THREE.Vector3().copy(target).sub(this.camera.position).normalize();
+				const camToBodyDir = new THREE.Vector3().copy(this.bodyGroup.position).sub(this.camera.position).normalize()
+				if (scaleDist > 1 && camToBodyDir.dot(camToTargetDir) > 0.8)
+					// target.sub(this.camera.position).normalize().multiplyScalar(scaleDist).add(this.camera.position)
+					target = new THREE.Vector3().copy(camToBodyDir).add(camToTargetDir)
+						.multiplyScalar(scaleDist/2).add(this.camera.position);
+			}
+
+			const frac = Math.exp(-dt/this.camFollowTimeConstant);
+			this.controls.target.multiplyScalar(frac).add(target.multiplyScalar(1-frac));
+		}
 		this.controls.update();
 		this.flashBuoy();
 		this.rotateProp(dt);
@@ -224,6 +248,7 @@ export class Visualizer {
 			console.error("ERROR: render error:", error);
 		}
 		window.requestAnimationFrame(this.renderloop);
+		if (this.onRender) this.onRender();
 	};
 	build(msg) {
 		this.raGroup.position.copy(this.dm.constants.r_ra);
