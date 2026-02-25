@@ -80,7 +80,11 @@
 	<Folder title='Run' disabled={!isConnected}>
 		<Monitor value={rm.elapsed} label='elapsed [s]' format={v => v.toFixed(2)} />
 		<Monitor value={rm.usage} label='usage [Ah]' format={v => v.toFixed(2)} />
-		<Button on:click={() => rm.onToggleRun()}  title={rm.inProgress? 'End Run' : 'Start Run'} />
+		<!-- <Button on:click={() => rm.onToggleRun()}  title={rm.inProgress? 'End Run' : 'Start Run'} /> -->
+		<ButtonGrid on:click={(ev) => {
+			if (ev.detail.label == 'Export') rm.onExportRun();
+			else rm.onToggleRun();
+		}} buttons={rm.inProgress? ['End Run','Export'] : ['Start Run','Export']} rows={1} />
 		<ButtonGrid on:click={ev => rm.onPos(ev.detail.label)} buttons={['Set Left','Set Right']}  rows={1} disabled={rm.inProgress} />
 	</Folder>
 	<Folder title='Camera'>

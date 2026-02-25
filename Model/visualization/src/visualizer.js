@@ -11,6 +11,7 @@ import * as utils from './utils.js';
 
 export class Visualizer {
 	camFollowTimeConstant = 0.5;
+	onTelem = () => {};
 	constructor(dm) {
 		this.dm = dm;
 		this.syncFlag = true;
@@ -319,5 +320,7 @@ export class Visualizer {
 		this.waterplane.updateGrid(this.dm.states.r);
 		this.components.forEach(c => c.syncVisuals());
 		this.waterplane.syncVisuals();
+
+		this.onTelem();
 	}
 }

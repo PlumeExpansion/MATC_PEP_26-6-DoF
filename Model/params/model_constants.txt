@@ -23,7 +23,7 @@ V_max = 44.4		# maximum input voltage (V)
 ###################################
 # Propeller Parameters
 
-d = 0.14			# propeller diameter (m)
+d = 0.12			# propeller diameter (m)
 
 eta_T = 0.95		# thrust deduction factor
 eta_T_surf = 0.6	# surfaced thrust deduction factor

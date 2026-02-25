@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mkConfig, generateCsv, download } from 'export-to-csv';
 
 export class RunManager {
 	elapsed = $state(0);
@@ -10,7 +11,9 @@ export class RunManager {
 	constructor(dm,viz) {
 		this.dm = dm;
 		this.viz = viz;
+		this.log = [];
 		viz.onRender = () => this.update();
+		viz.onTelem = () => this.#updateLog();
 	}
 	onToggleRun() {
 		this.inProgress = !this.inProgress;
@@ -22,7 +25,27 @@ export class RunManager {
 			this.turns = 0;
 			this.lastCriterion = this.#getCriterion();
 			this.usage = 0;
+			this.log = [];
 		}
+	}
+	onExportRun() {
+		const headers = Object.keys(this.log[0]);
+		const csvConfig = mkConfig({ 
+			columnHeaders: headers, 
+			useKeyAsHeaders: true, 
+			filename: `run_${(new Date()).toLocaleString()}` })
+		const csvOutput = generateCsv(csvConfig)(this.log);
+		download(csvConfig)(csvOutput);
+	}
+	#updateLog() {
+		if (!this.inProgress) return;
+		const entry = {
+			time: this.dm.simStates.time,
+			I: this.dm.simStates.I,
+			u: this.dm.simStates.U.u,
+			V: this.dm.simStates.V,
+		}
+		this.log.push(entry);
 	}
 	onPos(pos) {
 		const dir = new THREE.Vector3().copy(this.viz.farBuoyMesh.position).sub(this.viz.nearBuoyMesh.position).normalize();
