@@ -204,7 +204,10 @@ class Model_6DoF:
 		except Exception as e:
 			print(f'ERROR: failed to load wing root aerodynamic coefficients - {e}')
 			return 1
+		r_LE_r = self.get_const('r_LE_'+id_1+'_ra') - self.r_CM
+		r_TE_r = self.get_const('r_LE_'+id_2+'_ra') - self.r_CM
 		wr_L = WingRoot(self, vol_area_data, aero_coeffs, True)
+		
 		wr_R = WingRoot(self, vol_area_data, aero_coeffs, False)
 		self.wing_roots = (wr_L, wr_R)
 		return 0

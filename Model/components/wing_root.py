@@ -6,9 +6,11 @@ if TYPE_CHECKING:
 from utils.utils import *
 
 class WingRoot:
-	def __init__(self, model: 'Model_6DoF', vol_area_data, aero_coeffs, left):
+	def __init__(self, model: 'Model_6DoF', r_list, aero_coeffs, vol_area_data, left):
 		self.model = model
 		self.vol_area_data = vol_area_data
+		self.r_LE_r = r_list[0]
+		self.r_LE_r = r_list[1]
 
 		self.aero_coeffs = aero_coeffs
 

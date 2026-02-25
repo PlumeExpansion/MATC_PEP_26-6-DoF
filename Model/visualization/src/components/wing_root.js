@@ -7,6 +7,9 @@ export class WingRoot extends THREE.Group {
 		super();
 		this.config = config;
 
+		this.r_LE_r = new THREE.Vector3();
+		this.r_TE_r = new THREE.Vector3();
+		this.r_qc_r = new THREE.Vector3();
 		this.area_center = new THREE.Vector3();
 		this.vol_center = new THREE.Vector3();
 		this.F_f = new THREE.Vector3();
@@ -23,6 +26,12 @@ export class WingRoot extends THREE.Group {
 		this.buoyantMoment = new utils.Arrow();
 
 		this.add(this.waterAxes, this.foilForce, this.foilMoment, this.buoyantForce, this.buoyantMoment);
+	}
+	build(data) {
+		this.r_LE_r.fromArray(data['r_LE_r']);
+		this.r_TE_r.fromArray(data['r_TE_r']);
+		this.r_qc_r.copy(r_LE_r).multiplyScalar(3/4)
+			.add(new THREE.Vector3().copy(r_TE_r).multiplyScalar(1/4));
 	}
 	syncTelem(telem) {
 		this.alpha = telem['alpha'];

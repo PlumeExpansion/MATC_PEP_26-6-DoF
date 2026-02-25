@@ -142,6 +142,15 @@ class Simulation:
 				'r_surf': self.model.hull.r_surf.tolist() # type: ignore
 			},
 			'panels': panel_telems,
+			'wing_roots': {
+				'L': {
+					'r_LE_r': self.model.wing_roots[0].r_LE_r,
+					'r_TE_r': self.model.wing_roots[0].r_TE_r,
+				},
+				'R': {
+
+				}
+			},
 			'propulsor': {
 				'r_prop': self.model.propulsor.r_prop.tolist(), # type: ignore
 				'r_motor': self.model.propulsor.r_motor.tolist(), # type: ignore
@@ -165,8 +174,8 @@ class Simulation:
 			},
 			'panels': panel_telems,
 			'wing_roots': {
-				'0': {},
-				'1': {}
+				'L': {},
+				'R': {}
 			},
 			'propulsor': {}
 		}
@@ -235,7 +244,7 @@ class Simulation:
 		surf_telem['Cbw'] = hull.Cbw_surf.flatten().tolist()
 
 		for wr in self.model.wing_roots:
-			wr_telem = self.raw_telem['wing_roots'][str(int(not wr.left))]
+			wr_telem = self.raw_telem['wing_roots']['L' if wr.left else 'R']
 			wr_telem['alpha'] = wr.alpha
 			wr_telem['beta'] = wr.beta
 			wr_telem['area'] = wr.area

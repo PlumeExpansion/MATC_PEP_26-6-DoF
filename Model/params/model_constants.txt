@@ -43,6 +43,9 @@ r_surf_kt = (0.70, 0, -0.24)	# surfaced forces center
 ###################################
 # Wing (keel transom frame) (left)
 
+LE_wr_kt = (#,#,#)
+TE_wr_kt = (#,#,#)
+
 LE_vr_kt = (0.67695, -0.46642, -0.16876)
 TE_vr_kt = (0.37695, -0.46642, -0.16876)
 

@@ -39,11 +39,68 @@ export class RunManager {
 	}
 	#updateLog() {
 		if (!this.inProgress) return;
+		const raForce = new THREE.Vector3();
+		const leftForce = new THREE.Vector3();
+		const rightForce = new THREE.Vector3();
+		const raMoment = new THREE.Vector3();
+		const leftMoment = new THREE.Vector3();
+		const rightMoment = new THREE.Vector3();
+		this.viz.panels.forEach((panel,id) => {
+			if (panel.rear) {
+				raForce.add(panel.F)
+				raMoment.add(panel.M);
+			} else {
+				if (id.includes('L')) {
+					leftForce.add(panel.F);
+					leftMoment.add(panel.M);
+				} else {
+					rightForce.add(panel.F);
+					rightMoment.add(panel.M);
+				}
+			}
+		});
+		raForce.add(this.viz.propulsor.F);
+		raMoment.add(this.viz.propulsor.M);
+		raMoment.sub(new THREE.Vector3().copy(this.dm.constants.r).cross(raForce));
+		const leftWingRoot = this.viz.wingRoots.get('L');
+		const rightWingRoot = this.viz.wingRoots.get('R');
+		leftForce.add(leftWingRoot.F);
+		leftMoment.add(leftWingRoot.M);
+		leftMoment.sub(new THREE.Vector3().copy(leftWingRoot.r_qc_r).cross(leftForce));
+		rightForce.add(rightWingRoot.F);
+		rightMoment.add(rightWingRoot.M);
+		rightMoment.sub(new THREE.Vector3().copy(rightWingRoot.r_qc_r).cross(rightForce));
 		const entry = {
 			time: this.dm.simStates.time,
+			// inputs
+			V: this.dm.simStates.V,
+			psi_ra: this.dm.simStates.psi_ra,
+			// propulsor
 			I: this.dm.simStates.I,
 			u: this.dm.simStates.U.u,
-			V: this.dm.simStates.V,
+			RPM: this.dm.simStates.RPM,
+			P: this.dm.simStates.I*this.dm.simStates.V,
+			Ah: this.usage,
+			// forces
+			raFx: raForce.x,
+			raFy: raForce.y,
+			raFz: raForce.z,
+			leftFx: leftForce.x,
+			leftFy: leftForce.y,
+			leftFz: leftForce.z,
+			rightFx: rightForce.x,
+			rightFy: rightForce.y,
+			rightFz: rightForce.z,
+			// moments
+			raMx: raMoment.x,
+			raMy: raMoment.y,
+			raMz: raMoment.z,
+			leftMx: leftMoment.x,
+			leftMy: leftMoment.y,
+			leftMz: leftMoment.z,
+			rightMx: rightMoment.x,
+			rightMy: rightMoment.y,
+			rightMz: rightMoment.z,
 		}
 		this.log.push(entry);
 	}

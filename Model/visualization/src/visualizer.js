@@ -90,15 +90,15 @@ export class Visualizer {
 		// --- Model Setup ---
 		this.panels = new Map();
 		this.wingRoots = new Map([
-			['0', new WingRoot(dm.sceneConfig)],
-			['1', new WingRoot(dm.sceneConfig)]
+			['L', new WingRoot(dm.sceneConfig)],
+			['R', new WingRoot(dm.sceneConfig)]
 		]);
 		this.#loadSTL();
 		this.hull = new Hull(dm.sceneConfig);
 		this.propulsor = new Propulsor(dm.sceneConfig);
-		this.bodyGroup.add(this.hull, this.wingRoots.get('0'), this.wingRoots.get('1'));
+		this.bodyGroup.add(this.hull, this.wingRoots.get('L'), this.wingRoots.get('R'));
 		this.raGroup.add(this.propulsor);
-		this.components = [this.hull, this.propulsor, this.wingRoots.get('0'), this.wingRoots.get('1')];
+		this.components = [this.hull, this.propulsor, this.wingRoots.get('L'), this.wingRoots.get('R')];
 
 		dm.callbacks.onToggleHullAxes = () => this.hull.toggleAxes();
 		dm.callbacks.onToggleFoilAxes = () => {
