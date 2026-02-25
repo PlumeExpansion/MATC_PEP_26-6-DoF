@@ -2,7 +2,7 @@
 # General Parameters
 ###################################
 
-m = 73				# mass (kg)
+m = 90				# mass (kg)
 g = 9.81			# gravitational constant (m/s^2)
 rho = 1011			# water density (kg/m^3)
 rho_surf = 1.225	# air density (kg/m^3)
@@ -23,7 +23,7 @@ V_max = 44.4		# maximum input voltage (V)
 ###################################
 # Propeller Parameters
 
-d = 0.12			# propeller diameter (m)
+d = 0.14			# propeller diameter (m)
 
 eta_T = 0.95		# thrust deduction factor
 eta_T_surf = 0.6	# surfaced thrust deduction factor

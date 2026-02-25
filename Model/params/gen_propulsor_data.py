@@ -13,7 +13,7 @@ def main():
 	I0 = 2.7		# no load current (A)
 	R0 = 0.0582		# motor resistance (Ω)
 
-	d = 0.13		# propeller diameter (m)
+	d = 0.10		# propeller diameter (m)
 	d_h = 0.085		# hub diameter (m)
 
 	f_d0 = 0.167	# standard tip-to-tip to hub diameter ratop
@@ -26,9 +26,9 @@ def main():
 
 	print(f'INFO: thrust deduction factor - {eta_T_h}')
 
-	plot = False
+	plot = True
 	plot_idx = 0		# n,T,Q,I
-	calculate = True
+	calculate = False
 	analysis = False
 
 	rho_range = np.array([0.8, 1.4, 995, 1100])
