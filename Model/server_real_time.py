@@ -126,15 +126,16 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'rate': await sim_rate(value)
 					elif state == 'method': await set_method(value)
 					elif state == 'input':
-						psi_ra = -value['x']*sim.psi_ra_max
-						V = value['y']*sim.V_max
-						if sim.is_running():
-							sim.input_queued = True
-							sim.psi_ra = psi_ra
-							sim.V = V
-						else:
-							sim.model.psi_ra = psi_ra
-							sim.model.propulsor.V = V
+						if (controller is None):
+							psi_ra = -value['x']*sim.psi_ra_max
+							V = value['y']*sim.V_max
+							if sim.is_running():
+								sim.input_queued = True
+								sim.psi_ra = psi_ra
+								sim.V = V
+							else:
+								sim.model.psi_ra = psi_ra
+								sim.model.propulsor.V = V
 					else: print(f'WARNING: unknown state set request - {state} = {value}')
 					if not sim.is_running():
 						sim.model.calc_state_dot()
