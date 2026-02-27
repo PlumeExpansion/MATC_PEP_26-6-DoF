@@ -45,7 +45,7 @@ class Propulsor:
 												  self.eta_T, self.eta_T_surf, self.model.Cb_ra, self.r_prop)
 
 @njit(cache=True)
-def calc_force_moment(z_d_2_world, z_d_1_world, rho_surf,rho, vA,V, prop_data,eta_T,eta_T_surf, Cb_ra, r_prop_body):
+def calc_force_moment(z_d_2_world, z_d_1_world, rho_surf,rho, vA,V, prop_data,eta_T,eta_T_surf, Cb_ra, r_prop_body,):
 	fp = z_d_2_world / (z_d_2_world - z_d_1_world)
 	fp = clip(fp, 0, 1)
 	rho = rho_surf + (rho - rho_surf)*fp
@@ -53,5 +53,5 @@ def calc_force_moment(z_d_2_world, z_d_1_world, rho_surf,rho, vA,V, prop_data,et
 
 	n,T,Q,I = trilinear_interp(prop_data, np.array([rho, vA, V]))
 	F = Cb_ra @ np.array([eta_T*T, 0, 0])
-	M = cross(r_prop_body, F)
+	M = cross(r_prop_body, F) - Cb_ra @ np.array([Q,0,0])
 	return fp, n, T, Q, I, F, M
