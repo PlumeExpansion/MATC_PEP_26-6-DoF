@@ -1,17 +1,36 @@
 export class SocketManager {
-	constructor(dm, visualizer) {
+	constructor(dm, viz) {
 		this.dm = dm;
-		this.visualizer = visualizer;
+		this.viz = viz;
 		this.socket = null;
+		
+		dm.callbacks.sendInput = () => {
+			this.send({ type: 'set', state: 'input', value: dm.controlStates.inputDamped });
+		};
+		viz.onRender.push((dt) => {
+			if (!dm.simStates.running) return;
+			dt *= dm.simStates.rate*(dm.simStates.running? 1 : 0);
+			const fracV = Math.exp(-dt/dm.constants.V_tau);
+			const fracPsiRa = Math.exp(-dt/dm.constants.psi_ra_tau);
+			const inputDamped = dm.controlStates.inputDamped;
+			const input = dm.controlStates.input;
+			const inputMapped = {
+				x: dm.queryMapped(input.x, dm.constants.psi_ra_params),
+				y: dm.queryMapped(input.y, dm.constants.V_params)
+			};
+			inputDamped.x = inputDamped.x*fracPsiRa + inputMapped.x*(1-fracPsiRa);
+			inputDamped.y = inputDamped.y*fracV + inputMapped.y*(1-fracV);
+			dm.callbacks.sendInput();
+		});
 
 		this.onMessageReceived = (msg) => {
 			if (msg['type'] == 'build') {
 				dm.setBuildTelem(msg);
-				visualizer.build(msg);
-				visualizer.buildPropeller();
+				viz.build(msg);
+				viz.buildPropeller();
 			} else if (msg['type'] == 'telem') {
 				dm.setTelem(msg);
-				visualizer.telem(msg);
+				viz.telem(msg);
 			} else {
 				console.log('WARNING: unknown data received', msg)
 			}
@@ -28,16 +47,18 @@ export class SocketManager {
 		};
 		dm.callbacks.onToggleRun = () => this.send({ type: 'sim' });
 		dm.callbacks.onStep = () => {
-			visualizer.syncFlag = true;
+			viz.syncFlag = true;
 			this.send({ type: 'step', dt: dm.controlStates.dt });
 		};
 		dm.callbacks.onExport = () => this.send({ type: 'export' })
 		dm.callbacks.onReset = () => {
-			visualizer.syncFlag = true;
+			viz.syncFlag = true;
+			dm.controlStates.inputDamped.x = 0;
+			dm.controlStates.inputDamped.y = 0;
 			this.send({ type: 'reset' });
 		};
 		dm.callbacks.onReinit = () => {
-			visualizer.syncFlag = true;
+			viz.syncFlag = true;
 			this.send({ type: 'reinit' });
 		}
 	}

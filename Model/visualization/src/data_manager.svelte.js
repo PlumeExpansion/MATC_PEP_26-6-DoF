@@ -54,12 +54,25 @@ export class DataManager {
 		Phi: {x: 0, y: 0, z: 0},
 		r: {x: 0, y: 0, z: 0},
 		input: {x: 0, y: 0},
+		inputDamped: {x: 0, y: 0},
 		rate: 1,
 		dt: 0.01
 	});
 	constants = {
 		r_CM: new THREE.Vector3(),
-		r_ra: new THREE.Vector3()
+		r_ra: new THREE.Vector3(),
+		V_tau: 1,
+		psi_ra_tau: 1,
+		V_max: 44.4,
+		psi_ra_max: 15,
+		V_params: {
+			x0: 1,
+			y0: 1
+		},
+		psi_ra_params: {
+			x0: 1,
+			y0: 1
+		}
 	};
 	states = {
 		r: new THREE.Vector3(),
@@ -71,6 +84,9 @@ export class DataManager {
 		wings: {}
 	}
 	callbacks = {}
+	constructor() {
+		this.#setMappingParameters();
+	}
 	#telemFunc(k,v) {
 		if (Object.prototype.toString.call(v) === '[object Array]') {
 			if (k.startsWith('C')) {
@@ -142,6 +158,25 @@ export class DataManager {
 		this.states.Cra_b.fromArray(msg['Cra_b']).transpose();
 		this.states.Cb_ra = this.states.Cra_b.clone().transpose();
 	}
+	#setMappingParameters() {
+		this.constants.V_params.coeffs = this.#getMappingParameters(this.constants.V_params.x0,this.constants.V_params.y0);
+		this.constants.psi_ra_params.coeffs = this.#getMappingParameters(this.constants.psi_ra_params.x0,this.constants.psi_ra_params.y0);
+	}
+	#getMappingParameters(x0,y0) {
+		// Piecewise Linear Cubic
+		const A = (y0-x0)/(x0*(x0-1)**3);
+		const B = 3*(x0-y0)/(x0-1)**3;
+		const C = ((y0-3)*x0**3-y0+3*x0*y0)/(x0*(x0-1)**3);
+		const D = ((x0-y0)*x0**2)/(x0-1)**3;
+		return [A,B,C,D];
+	}
+	queryMapped(x,params) {
+		const xi = Math.abs(x);
+		let y = 0;
+		if (xi < params.x0) y = params.y0/params.x0*xi;
+		else y = params.coeffs[0]*xi**3 + params.coeffs[1]*xi**2 + params.coeffs[2]*xi + params.coeffs[3];
+		return Math.sign(x)*y;
+	}
 	setMethod(method) {
 		this.simStates.method = method;
 	}
@@ -152,6 +187,15 @@ export class DataManager {
 		this.constants.r_ra.fromArray(msg['r_ra']);
 		this.constants.V_max = msg['V_max'];
 		this.constants.psi_ra_max = msg['psi_ra_max']*180/Math.PI;
+		this.constants.V_tau = msg['V_tau'];
+		this.constants.psi_ra_tau = msg['psi_ra_tau'];
+
+		this.constants.V_params.x0 = msg['V_x0'];
+		this.constants.V_params.y0 = msg['V_y0'];
+		this.constants.psi_ra_params.x0 = msg['psi_ra_x0'];
+		this.constants.psi_ra_params.y0 = msg['psi_ra_y0'];
+		this.#setMappingParameters();
+		
 		this.methods = msg['methods'];
 	}
 	syncControlStates() {

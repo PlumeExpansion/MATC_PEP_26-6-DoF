@@ -12,8 +12,8 @@ export class RunManager {
 		this.dm = dm;
 		this.viz = viz;
 		this.log = [];
-		viz.onRender = () => this.update();
-		viz.onTelem = () => this.#updateLog();
+		viz.onRender.push(() => this.update());
+		viz.onTelem.push(() => this.#updateLog());
 	}
 	onToggleRun() {
 		this.inProgress = !this.inProgress;
@@ -61,14 +61,14 @@ export class RunManager {
 		});
 		raForce.add(this.viz.propulsor.F);
 		raMoment.add(this.viz.propulsor.M);
-		raMoment.sub(new THREE.Vector3().copy(this.dm.constants.r).cross(raForce));
+		raMoment.sub(new THREE.Vector3().copy(this.dm.constants.r_ra).cross(raForce));
 		const leftWingRoot = this.viz.wingRoots.get('L');
 		const rightWingRoot = this.viz.wingRoots.get('R');
-		leftForce.add(leftWingRoot.F);
-		leftMoment.add(leftWingRoot.M);
+		leftForce.add(leftWingRoot.F_f).add(leftWingRoot.F_b);
+		leftMoment.add(leftWingRoot.M_f).add(leftWingRoot.M_b);
 		leftMoment.sub(new THREE.Vector3().copy(leftWingRoot.r_qc_r).cross(leftForce));
-		rightForce.add(rightWingRoot.F);
-		rightMoment.add(rightWingRoot.M);
+		rightForce.add(rightWingRoot.F_f).add(rightWingRoot.F_b);
+		rightMoment.add(rightWingRoot.M_f).add(rightWingRoot.M_b);
 		rightMoment.sub(new THREE.Vector3().copy(rightWingRoot.r_qc_r).cross(rightForce));
 		const entry = {
 			time: this.dm.simStates.time,
@@ -81,6 +81,9 @@ export class RunManager {
 			RPM: this.dm.simStates.RPM,
 			P: this.dm.simStates.I*this.dm.simStates.V,
 			Ah: this.usage,
+			Q: this.viz.propulsor.Q,
+			// hull
+			vol: this.viz.hull.vol,
 			// forces
 			raFx: raForce.x,
 			raFy: raForce.y,

@@ -9,8 +9,8 @@ class WingRoot:
 	def __init__(self, model: 'Model_6DoF', r_list, aero_coeffs, vol_area_data, left):
 		self.model = model
 		self.vol_area_data = vol_area_data
-		self.r_LE_r = r_list[0]
-		self.r_LE_r = r_list[1]
+		self.r_LE = r_list[0]
+		self.r_TE = r_list[1]
 
 		self.aero_coeffs = aero_coeffs
 

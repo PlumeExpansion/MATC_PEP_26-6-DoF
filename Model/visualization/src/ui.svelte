@@ -293,7 +293,8 @@
 		<Button on:click={() => {
 			dm.controlStates.input.x = 0;
 			dm.controlStates.input.y = 0;
-			dm.callbacks.onStateChange('input', { origin: 'internal', value: dm.controlStates.input });
+			dm.controlStates.inputDamped.x = 0;
+			dm.controlStates.inputDamped.y = 0;
 		}}  title='Zero Inputs' />
 		<Monitor value={dm.simStates.RPM} label='RPM' />
 		<Monitor value={dm.simStates.I} label='I [A]' />
@@ -304,7 +305,13 @@
 			optionsY={{min: -1, max: 1, inverted: true}}
 			picker='inline'
 			expanded={true}
-			on:change={ev => dm.callbacks.onStateChange('input', ev.detail)}
+			on:change={() => {
+				if (!dm.simStates.running) {
+					dm.controlStates.inputDamped.x = dm.controlStates.input.x;
+					dm.controlStates.inputDamped.y = dm.controlStates.input.y;
+					dm.callbacks.sendInput();
+				}
+			}}
 			format={v => v.toFixed(2)}/>
 	</Folder>
 </Pane>

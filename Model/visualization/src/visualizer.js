@@ -11,7 +11,8 @@ import * as utils from './utils.js';
 
 export class Visualizer {
 	camFollowTimeConstant = 0.5;
-	onTelem = () => {};
+	onTelem = [];
+	onRender = [];
 	constructor(dm) {
 		this.dm = dm;
 		this.syncFlag = true;
@@ -249,7 +250,7 @@ export class Visualizer {
 			console.error("ERROR: render error:", error);
 		}
 		window.requestAnimationFrame(this.renderloop);
-		if (this.onRender) this.onRender();
+		this.onRender.forEach(callback => callback(dt));
 	};
 	build(msg) {
 		this.raGroup.position.copy(this.dm.constants.r_ra);
@@ -278,6 +279,7 @@ export class Visualizer {
 		this.propMesh.position.copy(this.propulsor.r_prop);
 
 		console.log('INFO: build successful');
+		this.syncFlag = true;
 	}
 	telem(msg) {
 		this.bodyGroup.oldPos.copy(this.bodyGroup.position)
@@ -321,6 +323,6 @@ export class Visualizer {
 		this.components.forEach(c => c.syncVisuals());
 		this.waterplane.syncVisuals();
 
-		this.onTelem();
+		this.onTelem.forEach(callback => callback());
 	}
 }

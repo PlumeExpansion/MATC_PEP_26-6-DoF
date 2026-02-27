@@ -102,9 +102,6 @@ class Model_6DoF:
 		self.r_CM = self.get_const('r_CM_kt')
 		self.r_ra = self.get_const('r_ra_kt') - self.r_CM
 
-		self.psi_ra_max = self.get_const('psi_ra_max')*np.pi/180
-		self.V_max = self.get_const('V_max')
-
 	def get_const(self, key, pos_check=False):
 		if key in self.constants:
 			self.accessed_constants.add(key)
@@ -204,11 +201,12 @@ class Model_6DoF:
 		except Exception as e:
 			print(f'ERROR: failed to load wing root aerodynamic coefficients - {e}')
 			return 1
-		r_LE_r = self.get_const('r_LE_'+id_1+'_ra') - self.r_CM
-		r_TE_r = self.get_const('r_LE_'+id_2+'_ra') - self.r_CM
-		wr_L = WingRoot(self, vol_area_data, aero_coeffs, True)
-		
-		wr_R = WingRoot(self, vol_area_data, aero_coeffs, False)
+		r_LE_wr = self.get_const('r_LE_wr_kt') - self.r_CM
+		r_TE_wr = self.get_const('r_TE_wr_kt') - self.r_CM
+		wr_L = WingRoot(self, [r_LE_wr,r_TE_wr], aero_coeffs, vol_area_data, True)
+		r_LE_wr = flipY @ r_LE_wr
+		r_TE_wr = flipY @ r_TE_wr
+		wr_R = WingRoot(self, [r_LE_wr,r_TE_wr], aero_coeffs, vol_area_data, False)
 		self.wing_roots = (wr_L, wr_R)
 		return 0
 

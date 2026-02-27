@@ -4,9 +4,10 @@ import json
 import time
 
 from model_RBird import Model_6DoF
+from utils.utils import *
 
 class Simulation:
-	def __init__(self, model: Model_6DoF):
+	def __init__(self, model: Model_6DoF, path_constants):
 		self.base_rate = 1
 		self.rate = 1
 		self.rate_restore = 0.2
@@ -18,6 +19,7 @@ class Simulation:
 		self.method = 'RK45'
 		self.valid_methods = ['RK45','RK23','Radau','BDF']
 
+		self.set_constants(path_constants)
 		self.set_model(model)
 		def check_state(t, state):
 			criterion = [
@@ -52,6 +54,21 @@ class Simulation:
 		self.__set_build_telem()
 		self.__init_telem()
 		self.set_telemetry()
+
+	def set_constants(self, path_constants):
+		print('INFO: loading simulation constants')
+		try:
+			self.constants = load_constants(path_constants)
+			self.psi_ra_max = self.constants['psi_ra_max']*np.pi/180
+			self.V_max = self.constants['V_max']
+			self.psi_ra_tau = self.constants['psi_ra_tau']
+			self.V_tau = self.constants['V_tau']
+			self.psi_ra_x0 = self.constants['psi_ra_x0']
+			self.psi_ra_y0 = self.constants['psi_ra_y0']
+			self.V_x0 = self.constants['V_x0']
+			self.V_y0 = self.constants['V_y0']
+		except Exception as e:
+			raise Exception(f'ERROR: failed to load simulation constants - {e}')
 
 	def __get_state_dot(self, t, state):
 		self.model.set_state(state)
@@ -144,11 +161,12 @@ class Simulation:
 			'panels': panel_telems,
 			'wing_roots': {
 				'L': {
-					'r_LE_r': self.model.wing_roots[0].r_LE_r,
-					'r_TE_r': self.model.wing_roots[0].r_TE_r,
+					'r_LE_wr': self.model.wing_roots[0].r_LE.tolist(),
+					'r_TE_wr': self.model.wing_roots[0].r_TE.tolist(),
 				},
 				'R': {
-
+					'r_LE_wr': self.model.wing_roots[1].r_LE.tolist(),
+					'r_TE_wr': self.model.wing_roots[1].r_TE.tolist(),
 				}
 			},
 			'propulsor': {
@@ -156,8 +174,14 @@ class Simulation:
 				'r_motor': self.model.propulsor.r_motor.tolist(), # type: ignore
 				'd': self.model.propulsor.d
 			},
-			'V_max': self.model.V_max,
-			'psi_ra_max': self.model.psi_ra_max,
+			'V_max': self.V_max,
+			'psi_ra_max': self.psi_ra_max,
+			'psi_ra_tau': self.psi_ra_tau,
+			'V_tau': self.V_tau,
+			'psi_ra_x0': self.psi_ra_x0,
+			'psi_ra_y0': self.psi_ra_y0,
+			'V_x0': self.V_x0,
+			'V_y0': self.V_y0,
 			'methods': self.valid_methods,
 			'method': self.method,
 		}
@@ -286,3 +310,5 @@ class Simulation:
 		self.raw_telem['method'] = self.method
 		self.raw_telem['time'] = self.elapsed
 		self.telem = json.dumps(self.raw_telem)
+
+def default_path_constants(): return 'params/simulation_constants.txt'

@@ -1,0 +1,25 @@
+##################################################################
+# Input Parameters
+###################################
+
+psi_ra_max = 15		# maximum rudder deflection (deg)
+V_max = 44.4		# maximum input voltage (V)
+
+###################################
+# Damping Parameters
+###################################
+
+psi_ra_tau = 0.1	# rudder deflection time constant (s)
+V_tau = 0.3			# input voltage time constant (s)
+
+###################################
+# Mapping Parameters
+###################################
+
+# Piecewise Linear Cubic in - https://www.desmos.com/calculator/ytacd8osjl
+
+psi_ra_x0 = 0.25	# rudder deflection damping point x
+psi_ra_y0 = 0.1		# rudder deflection damping point y
+
+V_x0 = 0.4			# input voltage damping point x
+V_y0 = 0.3			# input voltage damping point y

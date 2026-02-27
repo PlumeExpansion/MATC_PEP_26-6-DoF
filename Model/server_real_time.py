@@ -9,11 +9,12 @@ os.environ['PYTHONWARNINGS'] = 'ignore'
 import pygame
 
 import model_RBird as model_RB
+import simulation as Sim
 from simulation import Simulation
 
 # --- Simulation Logic --
 
-sim = Simulation(model_RB.make_default())
+sim = Simulation(model_RB.make_default(), Sim.default_path_constants())
 sockets = set()
 
 async def broadcast_telem():
@@ -58,6 +59,7 @@ async def reset_sim():
 async def reinit_sim():
 	print(f'INFO: re-initializing simulation')
 	sim.pause()
+	sim.set_constants(Sim.default_path_constants())
 	sim.set_model(model_RB.make_default())
 
 	sim.model.calc_state_dot()
@@ -124,8 +126,8 @@ async def handler(socket: websockets.ServerConnection):
 					elif state == 'rate': await sim_rate(value)
 					elif state == 'method': await set_method(value)
 					elif state == 'input':
-						psi_ra = -value['x']*sim.model.psi_ra_max
-						V = value['y']*sim.model.V_max
+						psi_ra = -value['x']*sim.psi_ra_max
+						V = value['y']*sim.V_max
 						if sim.is_running():
 							sim.input_queued = True
 							sim.psi_ra = psi_ra
@@ -265,8 +267,8 @@ async def controller_loop():
 
 			reverse = controller.get_button(7)
 			
-			psi_ra = -yaw*sim.model.psi_ra_max
-			V = (-1 if reverse==1 else 1)*throttle*sim.model.V_max
+			psi_ra = -yaw*sim.psi_ra_max
+			V = (-1 if reverse==1 else 1)*throttle*sim.V_max
 			if sim.is_running():
 				sim.input_queued = True
 				sim.psi_ra = psi_ra # type: ignore
