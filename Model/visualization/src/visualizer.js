@@ -94,6 +94,7 @@ export class Visualizer {
 			['L', new WingRoot(dm.sceneConfig)],
 			['R', new WingRoot(dm.sceneConfig)]
 		]);
+		this.#initSTL();
 		this.#loadSTL();
 		this.hull = new Hull(dm.sceneConfig);
 		this.propulsor = new Propulsor(dm.sceneConfig);
@@ -118,6 +119,18 @@ export class Visualizer {
 			this.propulsor.toggleSubmergence();
 		};
 	}
+	async #initSTL() {
+		this.bufferGeom = new THREE.BufferGeometry();
+
+		this.stlMaterial = new THREE.MeshPhongMaterial({ transparent: true });
+		this.buoyMaterial = new THREE.MeshPhongMaterial();
+		
+		this.hullMesh = new THREE.Mesh(this.bufferGeom, this.stlMaterial);
+		this.wingMesh = new THREE.Mesh(this.bufferGeom, this.stlMaterial);
+		this.rearWingMesh = new THREE.Mesh(this.bufferGeom, this.stlMaterial);
+		this.motorMesh = new THREE.Mesh(this.bufferGeom, this.stlMaterial);
+		this.propMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.stlMaterial);
+	}
 	async #loadSTL() {
 		this.loader = new STLLoader();
 		this.hullGeometry = await this.loader.loadAsync('RBird_Hull_Remesh.stl');
@@ -125,15 +138,13 @@ export class Visualizer {
 		this.rearWingGeometry = await this.loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
 		this.buoyGeometry = await this.loader.loadAsync('Buoy.stl');
 		this.motorGeometry = await this.loader.loadAsync('Low_Poly_FlipSky-85165-150.stl');
-
-		this.stlMaterial = new THREE.MeshPhongMaterial({ transparent: true });
-		this.buoyMaterial = new THREE.MeshPhongMaterial();
 		
-		this.hullMesh = new THREE.Mesh(this.hullGeometry, this.stlMaterial);
-		this.wingMesh = new THREE.Mesh(this.wingGeometry, this.stlMaterial);
-		this.rearWingMesh = new THREE.Mesh(this.rearWingGeometry, this.stlMaterial);
-		this.motorMesh = new THREE.Mesh(this.motorGeometry, this.stlMaterial);
-		this.propMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.stlMaterial);
+		this.bufferGeom.dispose();
+		this.hullMesh.geometry = this.hullGeometry;
+		this.wingMesh.geometry = this.wingGeometry;
+		this.rearWingMesh.geometry = this.rearWingGeometry;
+		this.motorMesh.geometry = this.motorGeometry;
+
 		this.buoys = []
 		this.nearBuoyMesh = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
 		this.farBuoyMesh = new THREE.Mesh(this.buoyGeometry, this.buoyMaterial);
