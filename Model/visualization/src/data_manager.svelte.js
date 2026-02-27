@@ -62,7 +62,7 @@ export class DataManager {
 		r_CM: new THREE.Vector3(),
 		r_ra: new THREE.Vector3(),
 		V_tau: 1,
-		psi_ra_tau: 1,
+		psi_ra_rate: 5,
 		V_max: 44.4,
 		psi_ra_max: 15,
 		V_params: {
@@ -188,7 +188,7 @@ export class DataManager {
 		this.constants.V_max = msg['V_max'];
 		this.constants.psi_ra_max = msg['psi_ra_max']*180/Math.PI;
 		this.constants.V_tau = msg['V_tau'];
-		this.constants.psi_ra_tau = msg['psi_ra_tau'];
+		this.constants.psi_ra_rate = msg['psi_ra_rate']*180/Math.PI;
 
 		this.constants.V_params.x0 = msg['V_x0'];
 		this.constants.V_params.y0 = msg['V_y0'];

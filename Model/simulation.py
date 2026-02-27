@@ -61,7 +61,7 @@ class Simulation:
 			self.constants = load_constants(path_constants)
 			self.psi_ra_max = self.constants['psi_ra_max']*np.pi/180
 			self.V_max = self.constants['V_max']
-			self.psi_ra_tau = self.constants['psi_ra_tau']
+			self.psi_ra_rate = self.constants['psi_ra_rate']*np.pi/180
 			self.V_tau = self.constants['V_tau']
 			self.psi_ra_x0 = self.constants['psi_ra_x0']
 			self.psi_ra_y0 = self.constants['psi_ra_y0']
@@ -107,7 +107,8 @@ class Simulation:
 		elif np.isnan(dt):
 			return
 		self.rate = min(self.rate, self.base_rate)
-		res = solve_ivp(self.__get_state_dot, [0,dt*self.rate], self.model.get_state(), events=self.__check_state, 
+		dt_step = dt*self.rate
+		res = solve_ivp(self.__get_state_dot, [0,dt_step], self.model.get_state(), events=self.__check_state, 
 				  method=self.method)
 		if self.__running:
 			time_now = time.perf_counter()
@@ -125,7 +126,7 @@ class Simulation:
 			print(f'WARNING: integration failed, pausing')
 			self.pause()
 		elif res.status == 0:
-			print(f'INFO: {len(res.t)} timesteps taken with {self.method}')
+			print(f'INFO: {len(res.t)} steps taken with {self.method} for dt of {dt_step:.4f}')
 			self.model.set_state(res.y[:,-1])
 			self.elapsed += dt*self.rate
 		else:
@@ -176,7 +177,7 @@ class Simulation:
 			},
 			'V_max': self.V_max,
 			'psi_ra_max': self.psi_ra_max,
-			'psi_ra_tau': self.psi_ra_tau,
+			'psi_ra_rate': self.psi_ra_rate,
 			'V_tau': self.V_tau,
 			'psi_ra_x0': self.psi_ra_x0,
 			'psi_ra_y0': self.psi_ra_y0,

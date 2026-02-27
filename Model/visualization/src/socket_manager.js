@@ -11,14 +11,16 @@ export class SocketManager {
 			if (!dm.simStates.running) return;
 			dt *= dm.simStates.rate*(dm.simStates.running? 1 : 0);
 			const fracV = Math.exp(-dt/dm.constants.V_tau);
-			const fracPsiRa = Math.exp(-dt/dm.constants.psi_ra_tau);
 			const inputDamped = dm.controlStates.inputDamped;
 			const input = dm.controlStates.input;
+			const deltaFracPsi_ra = dt*dm.constants.psi_ra_rate/dm.constants.psi_ra_max;
+			const offsetPsi_ra = input.x-inputDamped.x;
+			const fracPsi_ra = Math.abs(deltaFracPsi_ra/offsetPsi_ra);
 			const inputMapped = {
 				x: dm.queryMapped(input.x, dm.constants.psi_ra_params),
 				y: dm.queryMapped(input.y, dm.constants.V_params)
 			};
-			inputDamped.x = inputDamped.x*fracPsiRa + inputMapped.x*(1-fracPsiRa);
+			inputDamped.x =fracPsi_ra > 1? input.x : offsetPsi_ra*fracPsi_ra + inputDamped.x;
 			inputDamped.y = inputDamped.y*fracV + inputMapped.y*(1-fracV);
 			dm.callbacks.sendInput();
 		});
