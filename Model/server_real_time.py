@@ -93,6 +93,14 @@ async def set_method(input_method):
 	sim.set_telemetry()
 	await broadcast_telem()
 
+async def set_input(V, psi_ra):
+	if sim.is_running():
+		sim.psi_ra = psi_ra
+		sim.V = V
+	else:
+		sim.model.psi_ra = psi_ra
+		sim.model.propulsor.V = V
+
 async def export_telem():
 	try:
 		sim.set_formatted_telem()
@@ -129,13 +137,7 @@ async def handler(socket: websockets.ServerConnection):
 						if (controller is None):
 							psi_ra = -value['x']*sim.psi_ra_max
 							V = value['y']*sim.V_max
-							if sim.is_running():
-								sim.input_queued = True
-								sim.psi_ra = psi_ra
-								sim.V = V
-							else:
-								sim.model.psi_ra = psi_ra
-								sim.model.propulsor.V = V
+							await set_input(V, psi_ra)
 					else: print(f'WARNING: unknown state set request - {state} = {value}')
 					if not sim.is_running():
 						sim.model.calc_state_dot()
@@ -190,7 +192,7 @@ async def simulation_loop(sim_task):
 		print('INFO: simulation terminated')
 	except Exception as e:
 		print(f'ERROR: simulation error - {e}')
-		print(f'INFO: reassining simulation task')
+		print(f'INFO: restarting simulation task')
 		sim_task = asyncio.create_task(simulation_loop(sim_task))
 
 async def console_loop():
@@ -270,13 +272,8 @@ async def controller_loop():
 			
 			psi_ra = -yaw*sim.psi_ra_max
 			V = (-1 if reverse==1 else 1)*throttle*sim.V_max
-			if sim.is_running():
-				sim.input_queued = True
-				sim.psi_ra = psi_ra # type: ignore
-				sim.V = V # type: ignore
-			else:
-				sim.model.psi_ra = psi_ra
-				sim.model.propulsor.V = V
+			await set_input(V, psi_ra)
+			
 			await asyncio.sleep(1/loop_rate)
 	except asyncio.CancelledError:
 		print('INFO: controller link terminated')

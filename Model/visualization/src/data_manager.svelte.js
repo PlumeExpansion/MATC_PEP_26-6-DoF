@@ -54,7 +54,6 @@ export class DataManager {
 		Phi: {x: 0, y: 0, z: 0},
 		r: {x: 0, y: 0, z: 0},
 		input: {x: 0, y: 0},
-		inputDamped: {x: 0, y: 0},
 		rate: 1,
 		dt: 0.01
 	});

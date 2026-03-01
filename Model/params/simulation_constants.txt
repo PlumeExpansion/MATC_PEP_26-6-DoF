@@ -9,7 +9,7 @@ V_max = 44.4		# maximum input voltage (V)
 # Damping Parameters
 ###################################
 
-psi_ra_rate = 4.62	# rudder deflection rate (deg/s)
+psi_ra_rate = 17.7	# rudder deflection rate (deg/s)
 V_tau = 0.3			# input voltage time constant (s)
 
 ###################################

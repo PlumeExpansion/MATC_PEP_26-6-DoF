@@ -3,27 +3,6 @@ export class SocketManager {
 		this.dm = dm;
 		this.viz = viz;
 		this.socket = null;
-		
-		dm.callbacks.sendInput = () => {
-			this.send({ type: 'set', state: 'input', value: dm.controlStates.inputDamped });
-		};
-		viz.onRender.push((dt) => {
-			if (!dm.simStates.running) return;
-			dt *= dm.simStates.rate*(dm.simStates.running? 1 : 0);
-			const fracV = Math.exp(-dt/dm.constants.V_tau);
-			const inputDamped = dm.controlStates.inputDamped;
-			const input = dm.controlStates.input;
-			const deltaFracPsi_ra = dt*dm.constants.psi_ra_rate/dm.constants.psi_ra_max;
-			const offsetPsi_ra = input.x-inputDamped.x;
-			const fracPsi_ra = Math.abs(deltaFracPsi_ra/offsetPsi_ra);
-			const inputMapped = {
-				x: dm.queryMapped(input.x, dm.constants.psi_ra_params),
-				y: dm.queryMapped(input.y, dm.constants.V_params)
-			};
-			inputDamped.x =fracPsi_ra > 1? input.x : offsetPsi_ra*fracPsi_ra + inputDamped.x;
-			inputDamped.y = inputDamped.y*fracV + inputMapped.y*(1-fracV);
-			dm.callbacks.sendInput();
-		});
 
 		this.onMessageReceived = (msg) => {
 			if (msg['type'] == 'build') {
@@ -47,6 +26,14 @@ export class SocketManager {
 			if (detail.origin == 'internal')
 				this.send({ type: 'set', state: state, value: detail.value });
 		};
+		dm.callbacks.onInput = (detail) => {
+			if (detail.origin != 'internal') return;
+			const inputMapped = {
+				x: dm.queryMapped(detail.value.x, dm.constants.psi_ra_params),
+				y: dm.queryMapped(detail.value.y, dm.constants.V_params)
+			};
+			this.send({ type: 'set', state: 'input', value: inputMapped });
+		}
 		dm.callbacks.onToggleRun = () => this.send({ type: 'sim' });
 		dm.callbacks.onStep = () => {
 			viz.syncFlag = true;

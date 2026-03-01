@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 import json
 import time
+import math
 
 from model_RBird import Model_6DoF
 from utils.utils import *
@@ -41,7 +42,6 @@ class Simulation:
 		check_state.terminal = True
 		self.__check_state = check_state
 
-		self.input_queued = False
 		self.V = 0.0
 		self.psi_ra = 0.0
 
@@ -93,11 +93,15 @@ class Simulation:
 		self.model.calc_state_dot()
 		self.set_telemetry()
 
+	def __step_input(self,dt):
+		frac_V = math.exp(-dt/self.V_tau)
+		max_delta_psi_ra = dt*self.psi_ra_rate
+		delta_psi_ra = self.psi_ra - self.model.psi_ra
+		frac_psi_ra = math.fabs(max_delta_psi_ra/(delta_psi_ra+1e-6))
+		self.model.propulsor.V = self.model.propulsor.V*frac_V + self.V*(1-frac_V)
+		self.model.psi_ra = self.psi_ra if frac_psi_ra > 1 else delta_psi_ra*frac_psi_ra + self.model.psi_ra
+
 	def step(self,dt: float=np.nan):
-		if self.input_queued:
-			self.input_queued = False
-			self.model.propulsor.V = self.V
-			self.model.psi_ra = self.psi_ra
 		if self.__running:
 			if not np.isnan(dt):
 				print(f'WARNING: simulation step of {dt} requested while running')
@@ -108,6 +112,7 @@ class Simulation:
 			return
 		self.rate = min(self.rate, self.base_rate)
 		dt_step = dt*self.rate
+		self.__step_input(dt_step)
 		res = solve_ivp(self.__get_state_dot, [0,dt_step], self.model.get_state(), events=self.__check_state, 
 				  method=self.method)
 		if self.__running:
