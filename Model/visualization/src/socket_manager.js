@@ -42,8 +42,6 @@ export class SocketManager {
 		dm.callbacks.onExport = () => this.send({ type: 'export' })
 		dm.callbacks.onReset = () => {
 			viz.syncFlag = true;
-			dm.controlStates.inputDamped.x = 0;
-			dm.controlStates.inputDamped.y = 0;
 			this.send({ type: 'reset' });
 		};
 		dm.callbacks.onReinit = () => {

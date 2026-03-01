@@ -88,6 +88,8 @@ class Simulation:
 	def reset(self):
 		self.elapsed = 0
 		self.pause()
+		self.V = 0
+		self.psi_ra = 0
 		self.model.set_state(np.zeros(14))
 		self.model.set_input(np.zeros(2))
 		self.model.calc_state_dot()

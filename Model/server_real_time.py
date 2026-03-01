@@ -61,9 +61,7 @@ async def reinit_sim():
 	sim.pause()
 	sim.set_constants(Sim.default_path_constants())
 	sim.set_model(model_RB.make_default())
-
-	sim.model.calc_state_dot()
-	sim.set_telemetry()
+	sim.reset()
 
 	for socket in sockets:
 		await socket.send(sim.build_telem)

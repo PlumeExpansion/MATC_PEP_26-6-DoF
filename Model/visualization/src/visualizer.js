@@ -135,7 +135,7 @@ export class Visualizer {
 		this.loader = new STLLoader();
 		this.hullGeometry = await this.loader.loadAsync('RBird_Hull_Remesh.stl');
 		this.wingGeometry = await this.loader.loadAsync('Wing_Applied_Low_Poly.stl');
-		this.rearWingGeometry = await this.loader.loadAsync('Rear_Wing_Applied_Low_Poly_RA_Origin.stl');
+		this.rearWingGeometry = await this.loader.loadAsync('Rear_Wing_Extended_Applied_Low_Poly_RA_Origin.stl');
 		this.buoyGeometry = await this.loader.loadAsync('Buoy.stl');
 		this.motorGeometry = await this.loader.loadAsync('Low_Poly_FlipSky-85165-150.stl');
 		
