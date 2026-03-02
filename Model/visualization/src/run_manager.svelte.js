@@ -77,7 +77,6 @@ export class RunManager {
 			psi_ra: this.dm.simStates.psi_ra,
 			// propulsor
 			I: this.dm.simStates.I,
-			u: this.dm.simStates.U.u,
 			RPM: this.dm.simStates.RPM,
 			P: this.dm.simStates.I*this.dm.simStates.V,
 			Ah: this.usage,
@@ -104,6 +103,19 @@ export class RunManager {
 			rightMx: rightMoment.x,
 			rightMy: rightMoment.y,
 			rightMz: rightMoment.z,
+			// states
+			u: this.dm.simStates.U.u,
+			v: this.dm.simStates.U.v,
+			w: this.dm.simStates.U.w,
+			p: this.dm.simStates.omega.p,
+			q: this.dm.simStates.omega.q,
+			r: this.dm.simStates.omega.r,
+			phi: this.dm.simStates.Phi.phi,
+			theta: this.dm.simStates.Phi.theta,
+			psi: this.dm.simStates.Phi.psi,
+			x: this.dm.simStates.r.x,
+			y: this.dm.simStates.r.y,
+			z: this.dm.simStates.r.z,
 		}
 		this.log.push(entry);
 	}
