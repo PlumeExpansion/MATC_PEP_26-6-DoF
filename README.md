@@ -1,4 +1,4 @@
-#Nonlinear six degrees of freedom dynamic simulation of USV for MATC team competing in PEP 26
+# Nonlinear six degrees of freedom dynamic simulation of USV for MATC team competing in PEP 26
 
 Initial development done with VPython in Axes Dev \
 Main 6-DoF model in Model, details can be found [here](https://docs.google.com/document/d/1pb3P5QaangbH325uTRs-FefswTTehO3T3uK7tuayAIE/edit?pli=1&tab=t.psa2r2w88iyw)
