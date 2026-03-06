@@ -9,3 +9,5 @@ telem_*.txt
 
 /run_log/
 run_*.csv
+
+settings.json
