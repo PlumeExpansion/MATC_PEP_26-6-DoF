@@ -13,22 +13,24 @@ def main():
 	I0 = 2.7		# no load current (A)
 	R0 = 0.0582		# motor resistance (Ω)
 
-	d = 0.10		# propeller diameter (m)
-	d_h = 0.085		# hub diameter (m)
+	d = 0.14		# propeller diameter (m)
+	d_h_u = 0.085	# upstream hub diameter (m)
+	d_h_d = 0.03	# downstream hub diameter (m)
 
 	f_d0 = 0.167	# standard tip-to-tip to hub diameter ratop
 	
 	output_path = f'./params/propulsor data/FlipSky-85165-150_B4-70-14_{int(d*100)}.npz'
 	
 	Ke = 60/(2*np.pi*KV)
-	f_d = d_h/d
+	# f_d = d_h_u/d
+	f_d = (d_h_u+d_h_d)/2/d
 	eta_T_h = (1-f_d**2)/(1-f_d0**2)
 
 	print(f'INFO: thrust deduction factor - {eta_T_h}')
 
-	plot = True
+	plot = False
 	plot_idx = 0		# n,T,Q,I
-	calculate = False
+	calculate = True
 	analysis = False
 
 	rho_range = np.array([0.8, 1.4, 995, 1100])
