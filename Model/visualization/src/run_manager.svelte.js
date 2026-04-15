@@ -70,6 +70,14 @@ export class RunManager {
 		rightForce.add(rightWingRoot.F_f).add(rightWingRoot.F_b);
 		rightMoment.add(rightWingRoot.M_f).add(rightWingRoot.M_b);
 		rightMoment.sub(new THREE.Vector3().copy(rightWingRoot.r_qc_r).cross(rightForce));
+
+		const U = this.dm.simStates.U;
+		const v = Math.sqrt(U.u**2 + U.v**2 + U.w**2);
+		const T = this.dm.propulsor.F.length();
+		const Q = this.dm.propulsor.M.length();
+		const n = this.dm.propulsor.n;
+		const eta0 = v*T/(2*Math.PI*n*Q);
+
 		const entry = {
 			time: this.dm.simStates.time,
 			// inputs
@@ -116,6 +124,8 @@ export class RunManager {
 			x: this.dm.simStates.r.x,
 			y: this.dm.simStates.r.y,
 			z: this.dm.simStates.r.z,
+			// analysis
+			eta0: eta0,
 		}
 		this.log.push(entry);
 	}
