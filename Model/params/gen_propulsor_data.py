@@ -28,9 +28,9 @@ def main():
 
 	print(f'INFO: thrust deduction factor - {eta_T_h}')
 
-	plot = False
+	plot = True
 	plot_idx = 0		# n,T,Q,I
-	calculate = True
+	calculate = False
 	analysis = False
 
 	rho_range = np.array([0.8, 1.4, 995, 1100])

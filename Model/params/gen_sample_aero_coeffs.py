@@ -39,11 +39,11 @@ def main():
 	s = FoilParams('surf',		0.0, 0.06, 5, 1,	0.05, 0.06, 10, 1.5)	# streamlined body
 
 	root = './sample aero coeffs/'
-	export = True
-	plot = False
+	export = False
+	plot = True
 
 	# foils = [wr,wv,w1,w2,w3, wr1,wr2,wrv,wrs,h,s]
-	foils = [h]
+	foils = [wr1]
 	for params in foils:
 		CL = gen_sample_lift_coeff(alpha, params.CL0, params.CLalpha, params.alpha_crit, params.CLrec)
 		CD = gen_sample_drag_coeff(alpha, params.CD0, params.CDtrans, params.alpha_trans, params.CDmax)
@@ -56,7 +56,8 @@ def main():
 
 		if plot:
 			fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-			fig.suptitle(params.id)
+			# fig.suptitle(params.id)
+			fig.suptitle('Rear Foil Lift/Drag vs AoA')
 			ax[0].plot(alpha, CL, color='blue', label='Lift')
 			ax[0].set_ylabel('$C_L$')
 			ax[0].set_xlabel('alpha [deg]')
